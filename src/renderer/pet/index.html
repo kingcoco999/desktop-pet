@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Desktop Pet</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+    }
+    body {
+      -webkit-app-region: no-drag;
+      position: relative;
+    }
+    #pet-canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+    }
+    #bubble-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #input-container {
+      position: absolute;
+      top: 275px;
+      left: 155px;
+      transform: translateX(-50%);
+      z-index: 200;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="pet-canvas"></canvas>
+  <div id="bubble-container"></div>
+  <div id="input-container">
+    <input type="text" id="chat-input" placeholder="和小喵说点什么..." />
+  </div>
+  <div id="context-menu-container"></div>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

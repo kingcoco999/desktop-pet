@@ -1,0 +1,39 @@
+{
+  "name": "desktop-pet",
+  "version": "1.0.0",
+  "description": "AI-powered desktop pet assistant",
+  "main": "dist/main/main/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:pet\" \"wait-on http://localhost:5173 http://localhost:5174 && npm run dev:main\"",
+    "dev:main": "tsc -p tsconfig.main.json && electron . --dev",
+    "dev:renderer": "vite --config vite.console.config.ts",
+    "dev:pet": "vite --config vite.pet.config.ts",
+    "build": "npm run build:main && npm run build:renderer && npm run build:pet",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "vite build --config vite.console.config.ts",
+    "build:pet": "vite build --config vite.pet.config.ts",
+    "dist": "npm run build && electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "electron-store": "^8.0.0",
+    "node-notifier": "^10.0.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.0.0",
+    "@types/node-notifier": "^8.0.0",
+    "@types/uuid": "^9.0.0",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "concurrently": "^8.0.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.0",
+    "wait-on": "^7.0.0"
+  }
+}

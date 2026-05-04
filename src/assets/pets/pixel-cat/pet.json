@@ -1,0 +1,28 @@
+{
+  "name": "像素小猫",
+  "author": "Desktop Pet",
+  "version": "1.0",
+  "format": "frames",
+  "size": { "width": 80, "height": 80 },
+  "animations": {
+    "idle": { "loop": true },
+    "walk-left": { "loop": true },
+    "walk-right": { "loop": true },
+    "talk": { "loop": true },
+    "happy": { "loop": false, "next": "idle" },
+    "sit": { "loop": false },
+    "sleep": { "loop": true },
+    "eat": { "loop": false, "next": "happy" },
+    "drag": { "loop": true },
+    "fall": { "loop": false, "next": "idle" }
+  },
+  "behaviors": {
+    "idleToSitChance": 0.3,
+    "walkInterval": [8000, 20000]
+  },
+  "bubble": {
+    "offsetX": 0,
+    "offsetY": -130,
+    "maxWidth": 250
+  }
+}
