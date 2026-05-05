@@ -111,6 +111,8 @@ export class ContextMenu {
     // Hover pauses auto-hide, leave resumes 5s timer
     menu.addEventListener('mouseenter', () => {
       this._isHovered = true;
+      const ipc = (window as any).__ipcRenderer;
+      if (ipc) ipc.send('pet:set-ignore-mouse-events', false);
       if (this.hideTimer) {
         clearTimeout(this.hideTimer);
         this.hideTimer = null;
@@ -118,6 +120,8 @@ export class ContextMenu {
     });
     menu.addEventListener('mouseleave', () => {
       this._isHovered = false;
+      const ipc = (window as any).__ipcRenderer;
+      if (ipc) ipc.send('pet:set-ignore-mouse-events', true);
       this.startHideTimer();
     });
     this.startHideTimer();

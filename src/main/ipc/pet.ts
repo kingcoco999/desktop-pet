@@ -45,6 +45,14 @@ export function registerPetHandlers(getPetWindow: () => BrowserWindow | null): v
     return { x: 0, y: 0 };
   });
 
+  // Toggle ignore mouse events (for click-through on transparent areas)
+  ipcMain.on('pet:set-ignore-mouse-events', (event, ignore: boolean) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && !win.isDestroyed()) {
+      win.setIgnoreMouseEvents(ignore, { forward: true });
+    }
+  });
+
   // Get available pets list
   ipcMain.handle(IPC_CHANNELS.PET_GET_LIST, () => {
     const petsDir = path.join(app.getPath('userData'), 'pets');

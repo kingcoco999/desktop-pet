@@ -25,8 +25,8 @@ export function createPetWindow(opacity?: number): BrowserWindow {
     },
   });
 
-  // Make the window click-through on transparent areas
-  petWindow.setIgnoreMouseEvents(false);
+  // Make the window click-through on transparent areas, forward events for detection
+  petWindow.setIgnoreMouseEvents(true, { forward: true });
 
   // Load pet renderer
   if (process.env.NODE_ENV === 'development' || process.argv.includes('--dev')) {

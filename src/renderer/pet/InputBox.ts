@@ -73,6 +73,16 @@ export class InputBox {
     this.input.addEventListener('mousedown', (e) => {
       e.stopPropagation();
     });
+
+    // Keep window interactive when mouse is over input
+    this.input.addEventListener('mouseenter', () => {
+      const ipc = (window as any).__ipcRenderer;
+      if (ipc) ipc.send('pet:set-ignore-mouse-events', false);
+    });
+    this.input.addEventListener('mouseleave', () => {
+      const ipc = (window as any).__ipcRenderer;
+      if (ipc) ipc.send('pet:set-ignore-mouse-events', true);
+    });
   }
 
   toggle(): void {

@@ -71,6 +71,8 @@ export class BubbleManager {
     // Hover pauses auto-hide, leave resumes it
     bubble.addEventListener('mouseenter', () => {
       this._isHovered = true;
+      const ipc = (window as any).__ipcRenderer;
+      if (ipc) ipc.send('pet:set-ignore-mouse-events', false);
       if (this.hideTimer) {
         clearTimeout(this.hideTimer);
         this.hideTimer = null;
@@ -78,6 +80,8 @@ export class BubbleManager {
     });
     bubble.addEventListener('mouseleave', () => {
       this._isHovered = false;
+      const ipc = (window as any).__ipcRenderer;
+      if (ipc) ipc.send('pet:set-ignore-mouse-events', true);
       if (this.autoHide && this.currentBubble) {
         this.hideTimer = window.setTimeout(() => this.hide(), this.hideDelay);
       }

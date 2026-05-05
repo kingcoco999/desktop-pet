@@ -528,6 +528,35 @@ export class PetRenderer {
     let lastScreenX = 0;
     let lastScreenY = 0;
 
+    // Track mouse position to toggle click-through on transparent areas
+    this.canvas.addEventListener('mousemove', (e: MouseEvent) => {
+      const ipc = (window as any).__ipcRenderer;
+      if (!ipc) return;
+      const rect = this.canvas.getBoundingClientRect();
+      const x = Math.round(e.clientX - rect.left);
+      const y = Math.round(e.clientY - rect.top);
+      const pixel = this.ctx.getImageData(x, y, 1, 1).data;
+      const isOverPet = pixel[3] > 0; // alpha > 0 means non-transparent
+      ipc.send('pet:set-ignore-mouse-events', !isOverPet);
+    });
+
+    // When mouse leaves canvas, make window click-through again
+    this.canvas.addEventListener('mouseleave', () => {
+      const ipc = (window as any).__ipcRenderer;
+      if (ipc) {
+        ipc.send('pet:set-ignore-mouse-events', true);
+      }
+    });
+
+    // When mouse enters canvas, temporarily make window interactive
+    // (mousemove will refine based on pixel transparency)
+    this.canvas.addEventListener('mouseenter', () => {
+      const ipc = (window as any).__ipcRenderer;
+      if (ipc) {
+        ipc.send('pet:set-ignore-mouse-events', false);
+      }
+    });
+
     this.canvas.addEventListener('mousedown', (e: MouseEvent) => {
       // Don't start drag if input is focused
       const inputBox = (window as any).__inputBox;
