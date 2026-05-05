@@ -15,6 +15,7 @@ export function getDatabase(): Database.Database {
   db.pragma('foreign_keys = ON');
 
   initializeTables(db);
+  migrateTables(db);
   return db;
 }
 
@@ -36,6 +37,9 @@ function initializeTables(db: Database.Database): void {
       completed INTEGER NOT NULL DEFAULT 0,
       priority TEXT NOT NULL DEFAULT 'normal' CHECK(priority IN ('low', 'normal', 'high')),
       due TEXT,
+      repeat TEXT NOT NULL DEFAULT 'none',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      last_triggered TEXT,
       source TEXT NOT NULL DEFAULT 'manual' CHECK(source IN ('ai', 'manual')),
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -43,6 +47,7 @@ function initializeTables(db: Database.Database): void {
 
     CREATE TABLE IF NOT EXISTS notes (
       id TEXT PRIMARY KEY,
+      title TEXT NOT NULL DEFAULT '未命名记事',
       content TEXT NOT NULL,
       tags TEXT DEFAULT '[]',
       pinned INTEGER NOT NULL DEFAULT 0,
@@ -51,23 +56,43 @@ function initializeTables(db: Database.Database): void {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
-    CREATE TABLE IF NOT EXISTS reminders (
-      id TEXT PRIMARY KEY,
-      content TEXT NOT NULL,
-      time TEXT NOT NULL,
-      repeat TEXT NOT NULL DEFAULT 'none' CHECK(repeat IN ('none', 'daily', 'weekly', 'monthly')),
-      enabled INTEGER NOT NULL DEFAULT 1,
-      source TEXT NOT NULL DEFAULT 'manual' CHECK(source IN ('ai', 'manual')),
-      last_triggered TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS ai_usage (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      model TEXT,
+      prompt_tokens INTEGER NOT NULL DEFAULT 0,
+      completion_tokens INTEGER NOT NULL DEFAULT 0,
+      total_tokens INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
+}
+
+function migrateTables(db: Database.Database): void {
+  // Add repeat/enabled/last_triggered columns to todos if missing (v1.2 migration)
+  const cols = db.prepare("PRAGMA table_info(todos)").all() as any[];
+  const colNames = cols.map(c => c.name);
+  if (!colNames.includes('repeat')) {
+    db.exec("ALTER TABLE todos ADD COLUMN repeat TEXT NOT NULL DEFAULT 'none'");
+  }
+  if (!colNames.includes('enabled')) {
+    db.exec("ALTER TABLE todos ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1");
+  }
+  if (!colNames.includes('last_triggered')) {
+    db.exec("ALTER TABLE todos ADD COLUMN last_triggered TEXT");
+  }
+
+  const noteCols = db.prepare("PRAGMA table_info(notes)").all() as any[];
+  const noteColNames = noteCols.map(c => c.name);
+  if (!noteColNames.includes('title')) {
+    db.exec("ALTER TABLE notes ADD COLUMN title TEXT NOT NULL DEFAULT '未命名记事'");
+  }
 }
 
 export function closeDatabase(): void {

@@ -7,6 +7,9 @@ export interface Todo {
   completed: boolean;
   priority: 'low' | 'normal' | 'high';
   due?: string;
+  repeat: 'none' | 'daily' | 'weekly' | 'monthly' | number;
+  enabled: boolean;
+  lastTriggered?: string;
   createdAt: string;
   updatedAt: string;
   source: 'ai' | 'manual';
@@ -14,23 +17,13 @@ export interface Todo {
 
 export interface Note {
   id: string;
+  title: string;
   content: string;
   tags: string[];
   createdAt: string;
   updatedAt: string;
   source: 'ai' | 'manual';
   pinned: boolean;
-}
-
-export interface Reminder {
-  id: string;
-  content: string;
-  time: string;
-  repeat: 'none' | 'daily' | 'weekly' | 'monthly';
-  enabled: boolean;
-  createdAt: string;
-  source: 'ai' | 'manual';
-  lastTriggered?: string;
 }
 
 export interface ChatMessage {
@@ -58,6 +51,13 @@ export interface Settings {
     bubbleHideDelay: number;
     bubbleDefaultOpen: boolean;
   };
+  petChatter: {
+    clickEnabled: boolean;
+    idleEnabled: boolean;
+    idleIntervalMinMs: number;
+    idleIntervalMaxMs: number;
+    prompt: string;
+  };
   behavior: {
     enabled: boolean;
     walkEnabled: boolean;
@@ -65,6 +65,17 @@ export interface Settings {
     sitToSleepChance: number;
     walkInterval: [number, number];
     walkDuration: [number, number];
+    moveDistance: [number, number];
+    slowWalkSpeed: number;
+    fastRunSpeed: number;
+    fastRunChance: number;
+    movementArea: {
+      enabled: boolean;
+      leftPercent: number;
+      topPercent: number;
+      widthPercent: number;
+      heightPercent: number;
+    };
   };
   reminder: {
     soundEnabled: boolean;
@@ -108,8 +119,8 @@ export type Intent =
   | 'delete_reminder'
   | 'update_todo'
   | 'update_note'
-  | 'update_reminder'
-  | 'complete_todo';
+  | 'complete_todo'
+  | 'reopen_todo';
 
 export interface AIResponse {
   intent: Intent;
@@ -140,6 +151,32 @@ export interface PetConfig {
   };
 }
 
+export interface PetCatalogEntry {
+  id: string;
+  name: string;
+  builtin: boolean;
+}
+
+export interface PetAtlasAnimation {
+  row: number;
+  frames: number;
+}
+
+export interface PetModel {
+  id: string;
+  name: string;
+  description?: string;
+  spritesheetUrl: string;
+  spritesheetDataUrl?: string;
+  frameWidth: number;
+  frameHeight: number;
+  columns: number;
+  rows: number;
+  animations: Record<string, PetAtlasAnimation>;
+  aliases?: Partial<Record<PetAnimationState, string>>;
+  mirrorStates?: Partial<Record<PetAnimationState, boolean>>;
+}
+
 export interface ModelInfo {
   id: string;
   name: string;
@@ -149,4 +186,23 @@ export interface ConnectionTestResult {
   success: boolean;
   message: string;
   models?: ModelInfo[];
+}
+
+export interface AIUsageSummary {
+  totalTokens: number;
+  todayTokens: number;
+  monthTokens: number;
+  totalRequests: number;
+  todayRequests: number;
+  lastUsedAt?: string;
+  byKind: Array<{
+    kind: string;
+    tokens: number;
+    requests: number;
+  }>;
+  daily: Array<{
+    date: string;
+    tokens: number;
+    requests: number;
+  }>;
 }

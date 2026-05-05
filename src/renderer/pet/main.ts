@@ -4,6 +4,10 @@ import { InputBox } from './InputBox';
 import { ContextMenu } from './ContextMenu';
 import { BehaviorEngine } from './BehaviorEngine';
 import { PetState } from './PetState';
+import { QuickCreatePanel } from './QuickCreatePanel';
+import { PetChatter } from './PetChatter';
+import { IPC_CHANNELS } from '../../shared/ipcChannels';
+import type { PetModel, Settings } from '../../shared/types';
 
 // Initialize pet system
 const canvas = document.getElementById('pet-canvas') as HTMLCanvasElement;
@@ -17,15 +21,40 @@ const bubbleManager = new BubbleManager(bubbleContainer);
 const inputBox = new InputBox(inputContainer);
 const contextMenu = new ContextMenu(contextMenuContainer);
 const subContextMenu = new ContextMenu(contextMenuContainer);
+const quickCreatePanel = new QuickCreatePanel(contextMenuContainer);
 const behaviorEngine = new BehaviorEngine(petState, renderer);
+const petChatter = new PetChatter(petState, bubbleManager);
+const { ipcRenderer } = require('electron');
 
-// Tell bubble manager where the pet is so bubble appears above it
-const petBounds = renderer.getPetBounds();
-bubbleManager.setPetPosition(petBounds.y);
+const syncPetAnchors = (): void => {
+  const petBounds = renderer.getPetBounds();
+  bubbleManager.setPetPosition(petBounds);
+  inputBox.setPetPosition(petBounds);
+  ipcRenderer.send('pet:update-hitbox', petBounds);
+};
+
+const applySettings = async (settings: Settings): Promise<void> => {
+  if ((window as any).__currentPetModel?.id !== settings.pet.currentPet) {
+    await loadPetModel(settings.pet.currentPet);
+  }
+  renderer.applySettings({
+    size: settings.pet.size,
+  });
+  bubbleManager.configure({
+    autoHide: settings.pet.bubbleAutoHide,
+    hideDelay: settings.pet.bubbleHideDelay,
+  });
+  behaviorEngine.applySettings(settings);
+  petChatter.applySettings(settings);
+  document.documentElement.style.opacity = String(settings.pet.opacity);
+  document.body.style.opacity = String(settings.pet.opacity);
+  syncPetAnchors();
+};
 
 // Make context menu globally accessible
 (window as any).__contextMenu = contextMenu;
 (window as any).__subContextMenu = subContextMenu;
+(window as any).__quickCreatePanel = quickCreatePanel;
 
 // Expose inputBox globally for PetRenderer double-click handler
 (window as any).__inputBox = inputBox;
@@ -35,6 +64,11 @@ bubbleManager.setPetPosition(petBounds.y);
 (window as any).__petState = petState;
 (window as any).__bubbleManager = bubbleManager;
 (window as any).__behaviorEngine = behaviorEngine;
+(window as any).__petChatter = petChatter;
+
+petState.onUpdate(() => {
+  syncPetAnchors();
+});
 
 // Start rendering
 renderer.start();
@@ -42,11 +76,29 @@ renderer.start();
 // Initialize behavior engine
 behaviorEngine.start();
 
-// Setup IPC listeners
-const { ipcRenderer } = require('electron');
+async function loadPetModel(petId?: string): Promise<void> {
+  const model = await ipcRenderer.invoke(IPC_CHANNELS.PET_GET_MODEL, petId) as PetModel;
+  await renderer.loadModel(model);
+  syncPetAnchors();
+  (window as any).__currentPetModel = model;
+  console.log('Loaded pet model:', model.id, model.name);
+}
 
-// Listen for reminder triggers
-ipcRenderer.on('reminder:triggered', (_event: any, data: { id: string; content: string }) => {
+window.__loadPetModel = loadPetModel;
+
+Promise.all([
+  loadPetModel(),
+  ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_ALL).then(async (settings: Settings) => {
+    if (settings) {
+      await applySettings(settings);
+    }
+  }),
+]).catch((error: unknown) => {
+  console.error('Failed to initialize pet window:', error);
+});
+
+// Listen for todo reminder triggers
+ipcRenderer.on('todo:triggered', (_event: any, data: { id: string; content: string }) => {
   petState.setAnimation('happy');
   bubbleManager.show(`⏰ ${data.content}`);
   setTimeout(() => petState.setAnimation('idle'), 3000);
@@ -59,8 +111,15 @@ ipcRenderer.on('bubble:show', (_event: any, message: string) => {
 
 // Listen for pet switch commands
 ipcRenderer.on('pet:switch', (_event: any, petId: string) => {
-  // Future: load different pet
-  console.log('Switching to pet:', petId);
+  loadPetModel(petId).catch((error: unknown) => {
+    console.error('Failed to switch pet:', error);
+  });
+});
+
+ipcRenderer.on('settings:updated', (_event: any, settings: Settings) => {
+  applySettings(settings).catch((error: unknown) => {
+    console.error('Failed to apply updated settings:', error);
+  });
 });
 
 // Expose IPC for renderer modules

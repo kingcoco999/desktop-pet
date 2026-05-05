@@ -4,6 +4,7 @@ export class InputBox {
   private isVisible: boolean = false;
   private _focused: boolean = false;
   private blurTimer: number | null = null;
+  private petBounds = { x: 120, y: 180, width: 96, height: 104 };
 
   get focused(): boolean {
     return this._focused;
@@ -19,8 +20,8 @@ export class InputBox {
   private setupStyles(): void {
     this.container.style.cssText = `
       position: absolute;
-      top: 275px;
-      left: 155px;
+      top: 0;
+      left: 0;
       transform: translateX(-50%);
       width: 200px;
       opacity: 0;
@@ -93,8 +94,14 @@ export class InputBox {
     }
   }
 
+  setPetPosition(bounds: { x: number; y: number; width: number; height: number }): void {
+    this.petBounds = bounds;
+    this.updatePosition();
+  }
+
   show(): void {
     this.isVisible = true;
+    this.updatePosition();
     this.container.style.opacity = '1';
     this.container.style.pointerEvents = 'auto';
     this.input.focus();
@@ -141,5 +148,15 @@ export class InputBox {
     }
 
     this.hide();
+  }
+
+  private updatePosition(): void {
+    const centerX = this.petBounds.x + this.petBounds.width / 2;
+    const top = this.petBounds.y + this.petBounds.height + 16;
+    const clampedX = Math.max(112, Math.min(centerX, window.innerWidth - 112));
+    const clampedY = Math.max(16, Math.min(top, window.innerHeight - 72));
+
+    this.container.style.left = `${clampedX}px`;
+    this.container.style.top = `${clampedY}px`;
   }
 }

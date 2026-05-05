@@ -24,12 +24,19 @@ export const DEFAULT_SETTINGS = {
     maxHistoryLength: 20,
   },
   pet: {
-    currentPet: 'pixel-cat',
+    currentPet: 'honey',
     size: 80,
     opacity: 0.9,
     bubbleAutoHide: true,
     bubbleHideDelay: 5000,
     bubbleDefaultOpen: true,
+  },
+  petChatter: {
+    clickEnabled: true,
+    idleEnabled: true,
+    idleIntervalMinMs: 18000,
+    idleIntervalMaxMs: 38000,
+    prompt: '你现在是用户桌面上的一只金渐层小猫。请生成一句适合桌宠气泡展示的中文短句。要求：12字以内，自然、可爱、有陪伴感，不要使用引号、括号、emoji，不要编号，不要解释。点击触发时可以更像回应主人；随机触发时更像自言自语或温柔提醒。',
   },
   behavior: {
     enabled: true,
@@ -38,6 +45,17 @@ export const DEFAULT_SETTINGS = {
     sitToSleepChance: 0.2,
     walkInterval: [8000, 20000] as [number, number],
     walkDuration: [2000, 5000] as [number, number],
+    moveDistance: [90, 240] as [number, number],
+    slowWalkSpeed: 42,
+    fastRunSpeed: 86,
+    fastRunChance: 0.35,
+    movementArea: {
+      enabled: false,
+      leftPercent: 10,
+      topPercent: 12,
+      widthPercent: 80,
+      heightPercent: 76,
+    },
   },
   reminder: {
     soundEnabled: true,

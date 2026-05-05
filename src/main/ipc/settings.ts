@@ -4,13 +4,25 @@ import { StorageService } from '../services/storage';
 import fs from 'fs';
 import path from 'path';
 
-export function registerSettingsHandlers(storage: StorageService, getMainWindow: () => BrowserWindow | null): void {
+export function registerSettingsHandlers(
+  storage: StorageService,
+  getMainWindow: () => BrowserWindow | null,
+  getPetWindow?: () => BrowserWindow | null,
+): void {
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, (_event, key: string) => {
     return storage.getSetting(key);
   });
 
   ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, (_event, key: string, value: string) => {
     storage.setSetting(key, value);
+    if (key === 'app_settings') {
+      const settings = storage.getAppSettings();
+      const petWindow = getPetWindow?.();
+      if (petWindow && !petWindow.isDestroyed()) {
+        petWindow.setOpacity(settings.pet.opacity);
+        petWindow.webContents.send('settings:updated', settings);
+      }
+    }
     return true;
   });
 

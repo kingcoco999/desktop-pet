@@ -42,12 +42,14 @@ export class ContextMenu {
     // Close on click outside the menu
     document.addEventListener('mousedown', (e: MouseEvent) => {
       const target = e.target as Node;
-      // Check if click is inside any menu
+      // Check if click is inside any menu or quick-create panel
       const parentMenu = (window as any).__contextMenu;
       const subMenu = (window as any).__subContextMenu;
+      const quickCreate = (window as any).__quickCreatePanel;
       const insideParent = parentMenu?.contains(target);
       const insideSub = subMenu?.contains(target);
-      if (!insideParent && !insideSub) {
+      const insideQuickCreate = quickCreate?.contains(target);
+      if (!insideParent && !insideSub && !insideQuickCreate) {
         this.hideAll();
       }
     });
@@ -77,7 +79,7 @@ export class ContextMenu {
       position: fixed;
       left: ${x}px;
       top: ${y}px;
-      transform: translateX(-50%);
+      transform: none;
       background: white;
       border-radius: 8px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.18);
@@ -89,6 +91,7 @@ export class ContextMenu {
       pointer-events: auto;
       animation: ctxmenu-in 0.12s ease-out;
       z-index: 9999;
+      visibility: hidden;
     `;
 
     // Add animation keyframes
@@ -160,28 +163,35 @@ export class ContextMenu {
     });
     this.startHideTimer();
 
-    // Adjust if menu goes off-screen
+    // Measure first, then place once to avoid visible jump.
     requestAnimationFrame(() => {
       if (!this.menuEl) return;
       const rect = this.menuEl.getBoundingClientRect();
-      // Right edge
-      if (rect.right > window.innerWidth) {
-        this.menuEl.style.left = `${window.innerWidth - rect.width - 8}px`;
-        this.menuEl.style.transform = 'none';
+
+      const gap = 8;
+      let finalLeft = x;
+      let finalTop = y;
+
+      if (finalLeft + rect.width > window.innerWidth - gap) {
+        finalLeft = window.innerWidth - rect.width - gap;
       }
-      // Left edge
-      if (rect.left < 0) {
-        this.menuEl.style.left = '8px';
-        this.menuEl.style.transform = 'none';
+      if (finalLeft < gap) {
+        finalLeft = gap;
       }
-      // Bottom edge - move above pet
-      if (rect.bottom > window.innerHeight) {
-        this.menuEl.style.top = `${y - rect.height}px`;
+
+      if (finalTop + rect.height > window.innerHeight - gap) {
+        finalTop = y - rect.height;
       }
-      // Top edge - move below pet
-      if (rect.top < 0) {
-        this.menuEl.style.top = '8px';
+      if (finalTop < gap) {
+        finalTop = gap;
       }
+      if (finalTop + rect.height > window.innerHeight - gap) {
+        finalTop = window.innerHeight - rect.height - gap;
+      }
+
+      this.menuEl.style.left = `${finalLeft}px`;
+      this.menuEl.style.top = `${finalTop}px`;
+      this.menuEl.style.visibility = 'visible';
     });
   }
 

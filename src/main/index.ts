@@ -7,7 +7,6 @@ import { Scheduler } from './services/scheduler';
 import { registerAIHandlers } from './ipc/ai';
 import { registerTodoHandlers } from './ipc/todo';
 import { registerNoteHandlers } from './ipc/note';
-import { registerReminderHandlers } from './ipc/reminder';
 import { registerChatHandlers } from './ipc/chat';
 import { registerSettingsHandlers } from './ipc/settings';
 import { registerPetHandlers } from './ipc/pet';
@@ -48,14 +47,32 @@ function setupIPC(): void {
     app.quit();
   });
 
+  ipcMain.on('app:restart', () => {
+    const relaunchPetWindow = (): void => {
+      const petSettings = storage.getAppSettings().pet;
+      const nextPetWindow = createPetWindow(petSettings.opacity);
+      scheduler.setPetWindow(nextPetWindow);
+    };
+
+    const currentPetWindow = getPetWindow();
+    if (currentPetWindow && !currentPetWindow.isDestroyed()) {
+      currentPetWindow.once('closed', () => {
+        relaunchPetWindow();
+      });
+      currentPetWindow.close();
+      return;
+    }
+
+    relaunchPetWindow();
+  });
+
   // Register all handlers
   registerAIHandlers(aiService, storage, getPetWindow);
   registerTodoHandlers(storage);
   registerNoteHandlers(storage);
-  registerReminderHandlers(storage);
   registerChatHandlers(storage);
-  registerSettingsHandlers(storage, getConsoleWindow);
-  registerPetHandlers(getPetWindow);
+  registerSettingsHandlers(storage, getConsoleWindow, getPetWindow);
+  registerPetHandlers(getPetWindow, storage);
 }
 
 app.whenReady().then(() => {

@@ -1,4 +1,4 @@
-import type { PetAnimationState } from '../../shared/types';
+import type { PetAnimationState, Settings } from '../../shared/types';
 import { PetState } from './PetState';
 import { PetRenderer } from './PetRenderer';
 
@@ -15,17 +15,32 @@ export class BehaviorEngine {
   private idleTimer: number = 0;
   private walkTimer: number = 0;
   private isWalking: boolean = false;
-  private walkDirection: 'left' | 'right' | 'up' | 'down' = 'left';
+  private walkVectorX: number = -1;
+  private walkVectorY: number = 0;
   private walkDistance: number = 0;
   private walkSpeed: number = 0.05;
   private animFrameId: number = 0;
   private lastTime: number = 0;
+  private edgeMargin: number = 24;
+  private dragLocked: boolean = false;
 
   // Configurable probabilities
   private idleToSitChance: number = 0.3;
   private sitToSleepChance: number = 0.2;
   private walkInterval: [number, number] = [8000, 20000];
   private walkDuration: [number, number] = [2000, 5000];
+  private currentWalkBudget: number = 0;
+  private moveDistance: [number, number] = [90, 240];
+  private slowWalkSpeed: number = 42;
+  private fastRunSpeed: number = 86;
+  private fastRunChance: number = 0.35;
+  private movementArea: Settings['behavior']['movementArea'] = {
+    enabled: false,
+    leftPercent: 10,
+    topPercent: 12,
+    widthPercent: 80,
+    heightPercent: 76,
+  };
 
   constructor(petState: PetState, renderer: PetRenderer) {
     this.petState = petState;
@@ -44,12 +59,34 @@ export class BehaviorEngine {
     }
   }
 
+  applySettings(settings: Settings): void {
+    this.enabled = settings.behavior.enabled;
+    this.walkEnabled = settings.behavior.walkEnabled;
+    this.idleToSitChance = settings.behavior.idleToSitChance;
+    this.sitToSleepChance = settings.behavior.sitToSleepChance;
+    this.walkInterval = settings.behavior.walkInterval;
+    this.walkDuration = settings.behavior.walkDuration;
+    this.moveDistance = settings.behavior.moveDistance;
+    this.slowWalkSpeed = settings.behavior.slowWalkSpeed;
+    this.fastRunSpeed = settings.behavior.fastRunSpeed;
+    this.fastRunChance = settings.behavior.fastRunChance;
+    this.movementArea = { ...settings.behavior.movementArea };
+  }
+
   private update = (): void => {
     const now = performance.now();
     const dt = now - this.lastTime;
     this.lastTime = now;
 
     if (!this.enabled) {
+      this.animFrameId = requestAnimationFrame(this.update);
+      return;
+    }
+
+    if (this.dragLocked) {
+      if (this.petState.currentAnimation !== 'drag') {
+        this.petState.setAnimation('drag');
+      }
       this.animFrameId = requestAnimationFrame(this.update);
       return;
     }
@@ -165,27 +202,43 @@ export class BehaviorEngine {
         return;
       }
 
-      const moveX = dt * this.walkSpeed * (this.walkDirection === 'left' ? -1 : this.walkDirection === 'right' ? 1 : 0);
-      const moveY = dt * this.walkSpeed * (this.walkDirection === 'up' ? -1 : this.walkDirection === 'down' ? 1 : 0);
+      const moveX = dt * this.walkSpeed * this.walkVectorX;
+      const moveY = dt * this.walkSpeed * this.walkVectorY;
       this.walkDistance += Math.sqrt(moveX * moveX + moveY * moveY);
 
-      const maxWalk = 100 + Math.random() * 100;
+      const maxWalk = this.currentWalkBudget > 0 ? this.currentWalkBudget : 100 + Math.random() * 100;
 
       if (this.walkDistance >= maxWalk) {
         this.stopWalking();
       } else {
-        // Actually move the window via IPC
-        const ipc = (window as any).__ipcRenderer;
-        if (ipc) {
-          ipc.invoke('pet:get-position').then((pos: { x: number; y: number }) => {
-            ipc.send('pet:move', { x: pos.x + moveX, y: pos.y + moveY });
-          });
-        }
-      }
+        const bounds = this.renderer.getPetBounds();
+        const viewport = this.renderer.getCanvasSize();
+        const movementBounds = this.getMovementBounds(viewport, bounds);
+        let nextX = this.petState.x + moveX;
+        let nextY = this.petState.y + moveY;
+        const minX = movementBounds.minX;
+        const minY = movementBounds.minY;
+        const maxX = movementBounds.maxX;
+        const maxY = movementBounds.maxY;
 
-      // Edge detection
-      if (this.collisionEnabled) {
-        this.checkEdge();
+        if (this.collisionEnabled && nextX <= minX) {
+          this.walkVectorX = Math.abs(this.walkVectorX);
+          nextX = minX;
+        } else if (this.collisionEnabled && nextX >= maxX) {
+          this.walkVectorX = -Math.abs(this.walkVectorX);
+          nextX = maxX;
+        }
+
+        if (this.collisionEnabled && nextY <= minY) {
+          this.walkVectorY = Math.abs(this.walkVectorY);
+          nextY = minY;
+        } else if (this.collisionEnabled && nextY >= maxY) {
+          this.walkVectorY = -Math.abs(this.walkVectorY);
+          nextY = maxY;
+        }
+
+        this.applyWalkAnimation(this.walkVectorX, this.walkVectorY);
+        this.renderer.setPetPosition(nextX, nextY);
       }
     }
 
@@ -195,41 +248,98 @@ export class BehaviorEngine {
   private startWalking(): void {
     this.isWalking = true;
     this.walkDistance = 0;
-    // Random direction including up and down
-    const directions: ('left' | 'right' | 'up' | 'down')[] = ['left', 'right', 'up', 'down'];
-    this.walkDirection = directions[Math.floor(Math.random() * directions.length)];
-    const animMap: Record<string, PetAnimationState> = {
-      'left': 'walk-left',
-      'right': 'walk-right',
-      'up': 'walk-up',
-      'down': 'walk-down',
-    };
-    this.petState.setAnimation(animMap[this.walkDirection]);
+    const angle = Math.random() * Math.PI * 2;
+    this.walkVectorX = Math.cos(angle);
+    this.walkVectorY = Math.sin(angle);
+    const pace = Math.random() < this.fastRunChance ? 'fast' : 'slow';
+    this.petState.setMovementPace(pace);
+    const speedPxPerSecond = pace === 'fast' ? this.fastRunSpeed : this.slowWalkSpeed;
+    this.walkSpeed = Math.max(18, speedPxPerSecond) / 1000;
+    const [minDuration, maxDuration] = this.walkDuration;
+    const safeMin = Math.max(400, minDuration);
+    const safeMax = Math.max(safeMin, maxDuration);
+    const duration = safeMin + Math.random() * (safeMax - safeMin);
+    const [minDistance, maxDistance] = this.moveDistance;
+    const safeMinDistance = Math.max(24, minDistance);
+    const safeMaxDistance = Math.max(safeMinDistance, maxDistance);
+    const distanceBudget = safeMinDistance + Math.random() * (safeMaxDistance - safeMinDistance);
+    const durationBudget = duration * this.walkSpeed;
+    this.currentWalkBudget = Math.max(distanceBudget, durationBudget * 0.65);
+    this.applyWalkAnimation(this.walkVectorX, this.walkVectorY);
   }
 
   private stopWalking(): void {
     this.isWalking = false;
     this.walkDistance = 0;
+    this.currentWalkBudget = 0;
+    this.petState.setMovementPace('slow');
+    this.walkSpeed = Math.max(18, this.slowWalkSpeed) / 1000;
     this.petState.setAnimation('idle');
   }
 
-  private checkEdge(): void {
-    const bounds = this.renderer.getPetBounds();
-    const margin = 20;
+  beginDrag(): void {
+    this.dragLocked = true;
+    this.isWalking = false;
+    this.walkDistance = 0;
+    this.walkTimer = 0;
+    this.idleTimer = 0;
+    this.petState.setAnimation('drag');
+  }
 
-    // Check canvas edges
-    if (this.walkDirection === 'left' && bounds.x <= margin) {
-      this.walkDirection = 'right';
-      this.petState.setAnimation('walk-right');
-    } else if (this.walkDirection === 'right' && bounds.x + bounds.width >= this.renderer.getCanvasSize().width - margin) {
-      this.walkDirection = 'left';
-      this.petState.setAnimation('walk-left');
-    } else if (this.walkDirection === 'up' && bounds.y <= margin) {
-      this.walkDirection = 'down';
-      this.petState.setAnimation('walk-down');
-    } else if (this.walkDirection === 'down' && bounds.y + bounds.height >= this.renderer.getCanvasSize().height - margin) {
-      this.walkDirection = 'up';
-      this.petState.setAnimation('walk-up');
+  endDrag(): void {
+    this.dragLocked = false;
+    this.walkTimer = 0;
+    this.idleTimer = 0;
+    this.petState.setAnimation('sit');
+  }
+
+  private applyWalkAnimation(dx: number, dy: number): void {
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    const verticalAngle = Math.atan2(absX, absY) * (180 / Math.PI);
+
+    // Use vertical walk cycles when movement is within 15 degrees of vertical.
+    if (absY > 0 && verticalAngle <= 15) {
+      this.petState.setAnimation(dy < 0 ? 'walk-up' : 'walk-down');
+      return;
     }
+
+    if (dx >= 0) {
+      this.petState.setFacing('right');
+      this.petState.setAnimation('walk-right');
+    } else {
+      this.petState.setFacing('left');
+      this.petState.setAnimation('walk-left');
+    }
+  }
+
+  private getMovementBounds(
+    viewport: { width: number; height: number },
+    bounds: { width: number; height: number },
+  ): { minX: number; minY: number; maxX: number; maxY: number } {
+    if (!this.movementArea.enabled) {
+      return {
+        minX: this.edgeMargin,
+        minY: this.edgeMargin,
+        maxX: Math.max(this.edgeMargin, viewport.width - bounds.width - this.edgeMargin),
+        maxY: Math.max(this.edgeMargin, viewport.height - bounds.height - this.edgeMargin),
+      };
+    }
+
+    const left = Math.round((viewport.width * this.movementArea.leftPercent) / 100);
+    const top = Math.round((viewport.height * this.movementArea.topPercent) / 100);
+    const width = Math.round((viewport.width * this.movementArea.widthPercent) / 100);
+    const height = Math.round((viewport.height * this.movementArea.heightPercent) / 100);
+    const areaMinX = Math.max(this.edgeMargin, left);
+    const areaMinY = Math.max(this.edgeMargin, top);
+    const areaMaxX = Math.max(areaMinX, Math.min(viewport.width - bounds.width - this.edgeMargin, left + width - bounds.width));
+    const areaMaxY = Math.max(areaMinY, Math.min(viewport.height - bounds.height - this.edgeMargin, top + height - bounds.height));
+
+    return {
+      minX: areaMinX,
+      minY: areaMinY,
+      maxX: areaMaxX,
+      maxY: areaMaxY,
+    };
   }
 }

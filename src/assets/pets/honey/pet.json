@@ -1,0 +1,81 @@
+{
+  "id": "honey",
+  "displayName": "Honey",
+  "description": "A small golden shaded kitten with round cheeks, emerald eyes, warm honey fur, dark outlined codex-pet style, and a curious gentle personality.",
+  "spritesheet": "spritesheet.webp",
+  "frameWidth": 192,
+  "frameHeight": 208,
+  "columns": 8,
+  "rows": 12,
+  "animations": {
+    "idle": {
+      "row": 0,
+      "frames": 6
+    },
+    "running-right": {
+      "row": 1,
+      "frames": 8
+    },
+    "running-left": {
+      "row": 2,
+      "frames": 8
+    },
+    "waving": {
+      "row": 3,
+      "frames": 4
+    },
+    "jumping": {
+      "row": 4,
+      "frames": 5
+    },
+    "failed": {
+      "row": 5,
+      "frames": 8
+    },
+    "waiting": {
+      "row": 6,
+      "frames": 6
+    },
+    "running": {
+      "row": 7,
+      "frames": 6
+    },
+    "review": {
+      "row": 8,
+      "frames": 6
+    },
+    "drag": {
+      "row": 9,
+      "frames": 6
+    },
+    "walk-up": {
+      "row": 10,
+      "frames": 6
+    },
+    "walk-down": {
+      "row": 11,
+      "frames": 6
+    }
+  },
+  "aliases": {
+    "idle": "idle",
+    "walk-left": "running-left",
+    "walk-right": "running-left",
+    "walk-up": "walk-up",
+    "walk-down": "walk-down",
+    "sit": "waiting",
+    "sleep": "failed",
+    "talk": "waving",
+    "happy": "waving",
+    "eat": "review",
+    "drag": "drag",
+    "fall": "jumping",
+    "play": "running",
+    "jump": "jumping",
+    "scratch": "review",
+    "rub": "review"
+  },
+  "mirrorStates": {
+    "walk-right": true
+  }
+}

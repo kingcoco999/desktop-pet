@@ -1,22 +1,21 @@
 <template>
   <div class="chat-panel">
-    <div class="chat-header">
-      <h1>💬 聊天</h1>
+    <div class="page-header">
+      <h1>💬 AI 聊天</h1>
       <div class="actions">
-        <button class="btn btn-secondary btn-sm" @click="searchMessages">🔍 搜索</button>
-        <button class="btn btn-danger btn-sm" @click="clearHistory">🗑️ 清空</button>
+        <button class="btn btn-secondary btn-sm" @click="clearHistory">🗑️ 清空</button>
       </div>
     </div>
 
-    <div class="chat-messages" ref="messagesRef">
+    <div class="chat-messages card" ref="messagesRef">
       <div v-if="messages.length === 0" class="empty-state">
         <div class="emoji">💬</div>
         <div class="message">还没有聊天记录</div>
         <div class="hint">双击桌面上的宠物开始聊天</div>
       </div>
-      <div v-for="msg in filteredMessages" :key="msg.id" :class="['message-item', msg.role]">
+      <div v-for="msg in messages" :key="msg.id" :class="['message-item', msg.role]">
         <div class="avatar">{{ msg.role === 'user' ? '👤' : '🐱' }}</div>
-        <div class="bubble">
+        <div class="bubble" :class="msg.role">
           <div class="content">{{ msg.content }}</div>
           <div class="meta">
             <span class="time">{{ formatTime(msg.createdAt) }}</span>
@@ -41,21 +40,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, inject } from 'vue';
+import { ref, onMounted, nextTick, inject } from 'vue';
 
 const { ipcRenderer } = require('electron');
 
 const messages = ref<any[]>([]);
 const inputText = ref('');
-const searchQuery = ref('');
 const messagesRef = ref<HTMLElement>();
 const toast = inject<any>('toast');
-
-const filteredMessages = computed(() => {
-  if (!searchQuery.value) return messages.value;
-  const q = searchQuery.value.toLowerCase();
-  return messages.value.filter(m => m.content.toLowerCase().includes(q));
-});
+const confirmDialog = inject<any>('confirm');
 
 async function loadMessages() {
   try {
@@ -73,7 +66,6 @@ async function sendMessage() {
 
   inputText.value = '';
 
-  // Add user message immediately
   messages.value.push({
     id: Date.now().toString(),
     role: 'user',
@@ -100,19 +92,12 @@ async function sendMessage() {
   }
 }
 
-function searchMessages() {
-  const q = prompt('搜索聊天记录:');
-  if (q !== null) {
-    searchQuery.value = q;
-  }
-}
-
 async function clearHistory() {
-  if (confirm('确定清空所有聊天记录？')) {
-    await ipcRenderer.invoke('chat:clear');
-    messages.value = [];
-    toast?.show('聊天记录已清空', 'success');
-  }
+  const ok = await confirmDialog?.show('清空聊天记录？', '这会删除当前控制台中的全部聊天记录，且无法恢复。');
+  if (!ok) return;
+  await ipcRenderer.invoke('chat:clear');
+  messages.value = [];
+  toast?.show('聊天记录已清空', 'success');
 }
 
 function scrollToBottom() {
@@ -133,78 +118,103 @@ onMounted(loadMessages);
 .chat-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
-}
-.chat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.chat-header h1 {
-  font-size: 24px;
-}
-.actions {
-  display: flex;
-  gap: 8px;
+  height: calc(100vh - 72px);
+  min-height: calc(100vh - 72px);
+  width: 100%;
+  min-width: 0;
+  gap: 14px;
+  overflow: hidden;
 }
 .chat-messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 16px;
-  background: var(--card-bg);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  margin-bottom: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 .message-item {
   display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 12px;
 }
 .message-item.user {
   flex-direction: row-reverse;
 }
 .avatar {
-  font-size: 24px;
-  width: 36px;
-  height: 36px;
+  font-size: 20px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F5F5F5;
+  background: rgba(255, 255, 255, 0.78);
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 .bubble {
   max-width: 70%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: #F0F0F0;
+  padding: 12px 15px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
-.message-item.user .bubble {
-  background: var(--primary-light);
+.bubble.user {
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.92), rgba(55, 65, 81, 0.88));
+  border-bottom-right-radius: 6px;
+}
+.bubble.assistant {
+  border-bottom-left-radius: 6px;
 }
 .content {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.6;
   white-space: pre-wrap;
+  color: var(--text);
+}
+.bubble.user .content,
+.bubble.user .time,
+.bubble.user .intent {
+  color: #f9fafb;
 }
 .meta {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 .time {
   font-size: 11px;
   color: var(--text-secondary);
 }
 .chat-input {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  flex-shrink: 0;
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 .chat-input .input-field {
   flex: 1;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+@media (max-width: 860px) {
+  .chat-input {
+    flex-direction: column;
+  }
+
+  .bubble {
+    max-width: 100%;
+  }
 }
 </style>

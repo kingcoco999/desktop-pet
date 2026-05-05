@@ -5,9 +5,12 @@ export const IPC_CHANNELS = {
   AI_TEST_CONNECTION: 'ai:test-connection',
   AI_GET_MODELS: 'ai:get-models',
   AI_CHAT: 'ai:chat',
+  AI_PET_CHATTER: 'ai:pet-chatter',
+  AI_USAGE_SUMMARY: 'ai:usage-summary',
 
   // Todo
   TODO_GET_ALL: 'todo:get-all',
+  TODO_GET_DUE: 'todo:get-due',
   TODO_CREATE: 'todo:create',
   TODO_UPDATE: 'todo:update',
   TODO_DELETE: 'todo:delete',
@@ -19,13 +22,8 @@ export const IPC_CHANNELS = {
   NOTE_UPDATE: 'note:update',
   NOTE_DELETE: 'note:delete',
 
-  // Reminder
-  REMINDER_GET_ALL: 'reminder:get-all',
-  REMINDER_CREATE: 'reminder:create',
-  REMINDER_UPDATE: 'reminder:update',
-  REMINDER_DELETE: 'reminder:delete',
-  REMINDER_TOGGLE: 'reminder:toggle',
-  REMINDER_TRIGGERED: 'reminder:triggered',
+  // Todo triggered (from scheduler)
+  TODO_TRIGGERED: 'todo:triggered',
 
   // Chat
   CHAT_GET_HISTORY: 'chat:get-history',
@@ -36,6 +34,7 @@ export const IPC_CHANNELS = {
   PET_SWITCH: 'pet:switch',
   PET_IMPORT: 'pet:import',
   PET_GET_CURRENT: 'pet:get-current',
+  PET_GET_MODEL: 'pet:get-model',
 
   // Settings
   SETTINGS_GET: 'settings:get',

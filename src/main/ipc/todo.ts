@@ -7,6 +7,10 @@ export function registerTodoHandlers(storage: StorageService): void {
     return storage.getAllTodos();
   });
 
+  ipcMain.handle(IPC_CHANNELS.TODO_GET_DUE, () => {
+    return storage.getDueTodos();
+  });
+
   ipcMain.handle(IPC_CHANNELS.TODO_CREATE, (_event, data) => {
     return storage.createTodo(data);
   });

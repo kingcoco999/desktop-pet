@@ -4,13 +4,13 @@ import path from 'path';
 let petWindow: BrowserWindow | null = null;
 
 export function createPetWindow(opacity?: number): BrowserWindow {
-  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+  const workArea = screen.getPrimaryDisplay().workArea;
 
   petWindow = new BrowserWindow({
-    width: 360,
-    height: 320,
-    x: screenWidth - 280,
-    y: screenHeight - 380,
+    x: workArea.x,
+    y: workArea.y,
+    width: workArea.width,
+    height: workArea.height,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
@@ -18,6 +18,7 @@ export function createPetWindow(opacity?: number): BrowserWindow {
     skipTaskbar: true,
     hasShadow: false,
     opacity: opacity ?? 0.9,
+    fullscreenable: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -27,7 +28,6 @@ export function createPetWindow(opacity?: number): BrowserWindow {
 
   // Make the window click-through on transparent areas, forward events for detection
   petWindow.setIgnoreMouseEvents(true, { forward: true });
-
   // Load pet renderer
   if (process.env.NODE_ENV === 'development' || process.argv.includes('--dev')) {
     petWindow.loadURL('http://localhost:5174');

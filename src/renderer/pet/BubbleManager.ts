@@ -4,7 +4,7 @@ export class BubbleManager {
   private hideTimer: number | null = null;
   private autoHide: boolean = true;
   private hideDelay: number = 5000;
-  private petTop: number = 180; // Y position of pet top edge
+  private petBounds = { x: 120, y: 180, width: 96, height: 104 };
   private _isHovered: boolean = false;
 
   get isHovered(): boolean {
@@ -16,8 +16,18 @@ export class BubbleManager {
     this.setupStyles();
   }
 
-  setPetPosition(petTop: number): void {
-    this.petTop = petTop;
+  setPetPosition(bounds: { x: number; y: number; width: number; height: number }): void {
+    this.petBounds = bounds;
+    this.updateBubblePosition();
+  }
+
+  configure(options: { autoHide?: boolean; hideDelay?: number }): void {
+    if (typeof options.autoHide === 'boolean') {
+      this.autoHide = options.autoHide;
+    }
+    if (typeof options.hideDelay === 'number') {
+      this.hideDelay = options.hideDelay;
+    }
   }
 
   private setupStyles(): void {
@@ -52,8 +62,8 @@ export class BubbleManager {
     // Style the bubble - fixed size, scrollable, hoverable
     bubble.style.cssText = `
       position: absolute;
-      top: ${this.petTop + 140}px;
-      left: 145px;
+      top: 0;
+      left: 0;
       transform: translate(-50%, -100%);
       width: 220px;
       height: 100px;
@@ -68,7 +78,6 @@ export class BubbleManager {
       overflow-y: auto;
       scrollbar-width: none;
       pointer-events: auto;
-      animation: bubble-in 0.2s ease-out;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     `;
 
@@ -111,8 +120,8 @@ export class BubbleManager {
       style.id = 'bubble-styles';
       style.textContent = `
         @keyframes bubble-in {
-          from { opacity: 0; transform: translate(-50%, 10px); }
-          to { opacity: 1; transform: translate(-50%, 0); }
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         .pet-bubble::-webkit-scrollbar { display: none; }
       `;
@@ -121,6 +130,7 @@ export class BubbleManager {
 
     this.container.appendChild(bubble);
     this.currentBubble = bubble;
+    this.updateBubblePosition();
 
     // Auto hide
     if (this.autoHide) {
@@ -142,6 +152,19 @@ export class BubbleManager {
 
   isVisible(): boolean {
     return this.currentBubble !== null;
+  }
+
+  private updateBubblePosition(): void {
+    if (!this.currentBubble) return;
+
+    const centerX = this.petBounds.x + this.petBounds.width / 2;
+    const anchorY = this.petBounds.y - 12;
+    const bubbleWidth = 220;
+    const minX = bubbleWidth / 2 + 12;
+    const maxX = window.innerWidth - bubbleWidth / 2 - 12;
+
+    this.currentBubble.style.left = `${Math.max(minX, Math.min(centerX, maxX))}px`;
+    this.currentBubble.style.top = `${Math.max(80, anchorY)}px`;
   }
 
   private escapeHtml(text: string): string {

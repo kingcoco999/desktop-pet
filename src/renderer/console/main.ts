@@ -12,7 +12,6 @@ const routes = [
   { path: '/chat', component: () => import('./components/ChatPanel.vue') },
   { path: '/todos', component: () => import('./components/TodoPanel.vue') },
   { path: '/notes', component: () => import('./components/NotePanel.vue') },
-  { path: '/reminders', component: () => import('./components/ReminderPanel.vue') },
   { path: '/settings', component: () => import('./components/SettingsPanel.vue') },
 ];
 
