@@ -19,12 +19,12 @@ export class Scheduler {
   start(): void {
     if (this.interval) return;
 
-    // Check every second for due reminders
+    // Check every 2 seconds for due reminders
     this.interval = setInterval(() => {
       this.checkReminders();
-    }, 1000);
+    }, 2000);
 
-    console.log('[Scheduler] Started');
+    console.log('[Scheduler] Started, checking every 2s');
   }
 
   stop(): void {
@@ -37,9 +37,15 @@ export class Scheduler {
 
   private checkReminders(): void {
     const dueReminders = this.storage.getDueReminders();
+
+    if (dueReminders.length > 0) {
+      console.log('[Scheduler] Found', dueReminders.length, 'due reminders');
+    }
+
     const settings = this.storage.getAppSettings();
 
     for (const reminder of dueReminders) {
+      console.log('[Scheduler] Triggering:', reminder.content, 'time:', reminder.time);
       this.triggerReminder(reminder, settings.reminder);
     }
   }
@@ -47,10 +53,13 @@ export class Scheduler {
   private triggerReminder(reminder: { id: string; content: string; time: string; repeat: string }, reminderSettings: { soundEnabled: boolean; notifyMode: string }): void {
     // Send IPC to pet window for animation
     if (this.petWindow && !this.petWindow.isDestroyed()) {
+      console.log('[Scheduler] Sending IPC to pet window:', reminder.content);
       this.petWindow.webContents.send('reminder:triggered', {
         id: reminder.id,
         content: reminder.content,
       });
+    } else {
+      console.log('[Scheduler] Pet window not available!');
     }
 
     // System notification

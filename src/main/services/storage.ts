@@ -164,9 +164,12 @@ export class StorageService {
 
   getDueReminders(): Reminder[] {
     const now = new Date().toISOString();
-    return this.db.prepare(
-      'SELECT * FROM reminders WHERE enabled = 1 AND time <= ?'
-    ).all(now) as any[] as Reminder[];
+    const all = this.db.prepare('SELECT * FROM reminders WHERE enabled = 1').all() as any[];
+    // Filter in JS to handle mixed time formats (UTC with Z, local without Z)
+    return all.filter(row => {
+      const reminderTime = new Date(row.time).toISOString();
+      return reminderTime <= now;
+    }).map(this.mapReminder);
   }
 
   markReminderTriggered(id: string): void {

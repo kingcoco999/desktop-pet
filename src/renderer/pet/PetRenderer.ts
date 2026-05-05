@@ -275,7 +275,7 @@ export class PetRenderer {
       next: 'happy',
     });
 
-    // WALK-UP animation (front-facing cat walking toward viewer)
+    // WALK-UP animation (back-facing cat walking away)
     this.animations.set('walk-up', {
       frames: [
         {
@@ -300,7 +300,7 @@ export class PetRenderer {
       loop: true,
     });
 
-    // WALK-DOWN animation (back-facing cat walking away)
+    // WALK-DOWN animation (front-facing cat walking toward viewer)
     this.animations.set('walk-down', {
       frames: [
         {
@@ -619,8 +619,8 @@ export class PetRenderer {
     }
   }
 
-  // Walk-up animation (front-facing, walking toward viewer)
-  private drawCatWalkUp(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, cat: string, dark: string, eye: string, nose: string, white: string, frame: number): void {
+  // Walk-down animation (front-facing, walking toward viewer)
+  private drawCatWalkDown(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, cat: string, dark: string, eye: string, nose: string, white: string, frame: number): void {
     const p = s / 16;
     const legOffset = frame % 2 === 0 ? p : -p;
     const bounce = frame === 1 ? -1 : 0;
@@ -674,8 +674,8 @@ export class PetRenderer {
     // Tail (hidden behind body in front view)
   }
 
-  // Walk-down animation (back-facing, walking away)
-  private drawCatWalkDown(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, cat: string, dark: string, eye: string, nose: string, white: string, frame: number): void {
+  // Walk-up animation (back-facing, walking away)
+  private drawCatWalkUp(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, cat: string, dark: string, eye: string, nose: string, white: string, frame: number): void {
     const p = s / 16;
     const legOffset = frame % 2 === 0 ? p : -p;
     const bounce = frame === 1 ? -1 : 0;
@@ -1057,12 +1057,15 @@ export class PetRenderer {
       e.preventDefault();
       const menu = (window as any).__contextMenu;
       if (menu) {
-        // Position menu to the right of the pet
-        const petRight = this.offsetX + this.size + 20;
-        const petTop = this.offsetY - 20;
+        // Position menu to the right of the pet (convert canvas coords to viewport coords)
+        const rect = this.canvas.getBoundingClientRect();
+        const petRight = rect.left + this.offsetX + this.size + 75;
+        const petTop = rect.top + this.offsetY + 60;
         const behavior = (window as any).__behaviorEngine;
         const toggleLabel = (flag: boolean, text: string) => `${flag ? '✅' : '⬜'} ${text}`;
-        menu.show(petRight, petTop, [
+
+        // Save parent menu items for returning from submenu
+        const parentMenuItems = [
           { label: '💬 打开对话', action: () => {
             const inputBox = (window as any).__inputBox;
             if (inputBox) inputBox.show();
@@ -1080,20 +1083,45 @@ export class PetRenderer {
             if (ipc) ipc.send('window:open-console');
           }},
           { separator: true, label: '' },
-          { label: toggleLabel(behavior?.walkEnabled ?? true, '自由行走'), action: () => {
-            if (behavior) behavior.walkEnabled = !behavior.walkEnabled;
-          }},
-          { label: toggleLabel(behavior?.restEnabled ?? true, '自动休息'), action: () => {
-            if (behavior) behavior.restEnabled = !behavior.restEnabled;
-          }},
-          { label: toggleLabel(behavior?.interactEnabled ?? true, '互动模式'), action: () => {
-            if (behavior) behavior.interactEnabled = !behavior.interactEnabled;
-          }},
-          { label: toggleLabel(behavior?.collisionEnabled ?? true, '碰撞边界'), action: () => {
-            if (behavior) behavior.collisionEnabled = !behavior.collisionEnabled;
-          }},
-          { label: toggleLabel(behavior?.bubbleEnabled ?? true, '气泡显示'), action: () => {
-            if (behavior) behavior.bubbleEnabled = !behavior.bubbleEnabled;
+          { label: `🎮 互动设置 ▸`, action: () => {
+            menu.hide();
+            const subMenu = (window as any).__subContextMenu;
+            if (subMenu) {
+              // Store show position for re-render
+              (window as any).__subMenuPos = { x: petRight, y: petTop };
+              // Build submenu items
+              const buildSubItems = () => [
+                { label: '← 返回', action: () => {
+                  subMenu.hide();
+                  const parentMenu = (window as any).__contextMenu;
+                  if (parentMenu) {
+                    parentMenu.show(petRight, petTop, (window as any).__parentMenuItems);
+                  }
+                }},
+                { separator: true, label: '' },
+                { label: toggleLabel(behavior?.walkEnabled ?? true, '自由行走'), action: () => {
+                  if (behavior) behavior.walkEnabled = !behavior.walkEnabled;
+                  subMenu.render(buildSubItems());
+                }},
+                { label: toggleLabel(behavior?.restEnabled ?? true, '自动休息'), action: () => {
+                  if (behavior) behavior.restEnabled = !behavior.restEnabled;
+                  subMenu.render(buildSubItems());
+                }},
+                { label: toggleLabel(behavior?.interactEnabled ?? true, '互动模式'), action: () => {
+                  if (behavior) behavior.interactEnabled = !behavior.interactEnabled;
+                  subMenu.render(buildSubItems());
+                }},
+                { label: toggleLabel(behavior?.collisionEnabled ?? true, '碰撞边界'), action: () => {
+                  if (behavior) behavior.collisionEnabled = !behavior.collisionEnabled;
+                  subMenu.render(buildSubItems());
+                }},
+                { label: toggleLabel(behavior?.bubbleEnabled ?? true, '气泡显示'), action: () => {
+                  if (behavior) behavior.bubbleEnabled = !behavior.bubbleEnabled;
+                  subMenu.render(buildSubItems());
+                }},
+              ];
+              subMenu.show(petRight, petTop, buildSubItems());
+            }
           }},
           { separator: true, label: '' },
           { label: '🖥️ 打开控制台', action: () => {
@@ -1106,7 +1134,9 @@ export class PetRenderer {
             const ipc = (window as any).__ipcRenderer;
             if (ipc) ipc.send('app:quit');
           }},
-        ]);
+        ];
+        (window as any).__parentMenuItems = parentMenuItems;
+        menu.show(petRight, petTop, parentMenuItems);
       }
     });
 

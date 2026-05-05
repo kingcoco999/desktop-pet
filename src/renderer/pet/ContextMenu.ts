@@ -10,9 +10,14 @@ export class ContextMenu {
   private menuEl: HTMLDivElement | null = null;
   private hideTimer: number | null = null;
   private _isHovered: boolean = false;
+  static activeMenu: ContextMenu | null = null;
 
   get isHovered(): boolean {
     return this._isHovered;
+  }
+
+  contains(target: Node): boolean {
+    return this.menuEl?.contains(target) ?? false;
   }
 
   constructor(container: HTMLDivElement) {
@@ -36,20 +41,43 @@ export class ContextMenu {
   private setupGlobalClose(): void {
     // Close on click outside the menu
     document.addEventListener('mousedown', (e: MouseEvent) => {
-      if (this.menuEl && !this.menuEl.contains(e.target as Node)) {
-        this.hide();
+      const target = e.target as Node;
+      // Check if click is inside any menu
+      const parentMenu = (window as any).__contextMenu;
+      const subMenu = (window as any).__subContextMenu;
+      const insideParent = parentMenu?.contains(target);
+      const insideSub = subMenu?.contains(target);
+      if (!insideParent && !insideSub) {
+        this.hideAll();
       }
     });
   }
 
   show(x: number, y: number, items: ContextMenuItem[]): void {
-    this.hide();
+    // Hide any existing submenus first
+    const existingSubMenus = document.querySelectorAll('[data-submenu]');
+    existingSubMenus.forEach(el => el.remove());
+
+    // Determine if this is a submenu before setting activeMenu
+    const isSubMenu = ContextMenu.activeMenu !== null && ContextMenu.activeMenu !== this;
+
+    // If this is a submenu, don't hide the parent menu
+    // Also skip hide if menuEl is already null (avoiding double-hide)
+    if (!isSubMenu && this.menuEl) {
+      this.hide();
+    }
+    ContextMenu.activeMenu = this;
 
     const menu = document.createElement('div');
+    // Mark as submenu if this is not the active (parent) menu
+    if (isSubMenu) {
+      menu.setAttribute('data-submenu', 'true');
+    }
     menu.style.cssText = `
-      position: absolute;
+      position: fixed;
       left: ${x}px;
       top: ${y}px;
+      transform: translateX(-50%);
       background: white;
       border-radius: 8px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.18);
@@ -60,6 +88,7 @@ export class ContextMenu {
       color: #333;
       pointer-events: auto;
       animation: ctxmenu-in 0.12s ease-out;
+      z-index: 9999;
     `;
 
     // Add animation keyframes
@@ -86,7 +115,7 @@ export class ContextMenu {
       const btn = document.createElement('div');
       btn.textContent = item.label;
       btn.style.cssText = `
-        padding: 8px 16px;
+        padding: 4px 16px;
         cursor: pointer;
         white-space: nowrap;
         transition: background 0.1s;
@@ -99,7 +128,12 @@ export class ContextMenu {
       });
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.hide();
+        // Don't hide if this is a submenu instance or submenu trigger
+        const isSubMenuTrigger = item.label.includes('▸');
+        const isSubmenuInstance = (window as any).__subContextMenu === this;
+        if (!isSubMenuTrigger && !isSubmenuInstance) {
+          this.hide();
+        }
         item.action?.();
       });
       menu.appendChild(btn);
@@ -126,17 +160,68 @@ export class ContextMenu {
     });
     this.startHideTimer();
 
-    // Adjust if menu goes off-screen right
+    // Adjust if menu goes off-screen
     requestAnimationFrame(() => {
       if (!this.menuEl) return;
       const rect = this.menuEl.getBoundingClientRect();
+      // Right edge
       if (rect.right > window.innerWidth) {
-        this.menuEl.style.left = `${x - rect.width}px`;
+        this.menuEl.style.left = `${window.innerWidth - rect.width - 8}px`;
+        this.menuEl.style.transform = 'none';
       }
+      // Left edge
+      if (rect.left < 0) {
+        this.menuEl.style.left = '8px';
+        this.menuEl.style.transform = 'none';
+      }
+      // Bottom edge - move above pet
       if (rect.bottom > window.innerHeight) {
         this.menuEl.style.top = `${y - rect.height}px`;
       }
+      // Top edge - move below pet
+      if (rect.top < 0) {
+        this.menuEl.style.top = '8px';
+      }
     });
+  }
+
+  render(items: ContextMenuItem[]): void {
+    if (!this.menuEl) return;
+    // Clear existing content
+    this.menuEl.innerHTML = '';
+    // Rebuild items
+    for (const item of items) {
+      if (item.separator) {
+        const sep = document.createElement('div');
+        sep.style.cssText = 'height: 1px; background: #e0e0e0; margin: 4px 8px;';
+        this.menuEl.appendChild(sep);
+        continue;
+      }
+      const btn = document.createElement('div');
+      btn.textContent = item.label;
+      btn.style.cssText = `
+        padding: 4px 16px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.1s;
+      `;
+      btn.addEventListener('mouseenter', () => {
+        btn.style.background = '#f0f0f0';
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.background = 'transparent';
+      });
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isSubMenuTrigger = item.label.includes('▸');
+        const isSubmenuInstance = (window as any).__subContextMenu === this;
+        if (!isSubMenuTrigger && !isSubmenuInstance) {
+          this.hide();
+        }
+        item.action?.();
+      });
+      this.menuEl.appendChild(btn);
+    }
   }
 
   hide(): void {
@@ -148,6 +233,17 @@ export class ContextMenu {
       this.menuEl.remove();
       this.menuEl = null;
     }
+    if (ContextMenu.activeMenu === this) {
+      ContextMenu.activeMenu = null;
+    }
+  }
+
+  hideAll(): void {
+    this.hide();
+    const subMenu = (window as any).__subContextMenu;
+    if (subMenu) subMenu.hide();
+    const parentMenu = (window as any).__contextMenu;
+    if (parentMenu) parentMenu.hide();
   }
 
   private startHideTimer(): void {

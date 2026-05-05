@@ -115,6 +115,12 @@ export class InputBox {
     // Send to main process
     const ipc = (window as any).__ipcRenderer;
     if (ipc) {
+      // Show thinking animation
+      const petState = (window as any).__petState;
+      if (petState) {
+        petState.setAnimation('talk');
+      }
+
       ipc.invoke('ai:chat', message).then((response: any) => {
         // Show bubble with response
         const bubbleManager = (window as any).__bubbleManager;
@@ -123,13 +129,11 @@ export class InputBox {
         }
 
         // Update pet animation based on mood
-        const petState = (window as any).__petState;
         if (petState && response) {
           if (response.mood === 'happy' || response.mood === 'surprised') {
             petState.setAnimation('happy');
             setTimeout(() => petState.setAnimation('idle'), 2000);
           } else {
-            petState.setAnimation('talk');
             setTimeout(() => petState.setAnimation('idle'), 2000);
           }
         }

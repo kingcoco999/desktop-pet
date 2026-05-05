@@ -16,6 +16,7 @@ const renderer = new PetRenderer(canvas, petState);
 const bubbleManager = new BubbleManager(bubbleContainer);
 const inputBox = new InputBox(inputContainer);
 const contextMenu = new ContextMenu(contextMenuContainer);
+const subContextMenu = new ContextMenu(contextMenuContainer);
 const behaviorEngine = new BehaviorEngine(petState, renderer);
 
 // Tell bubble manager where the pet is so bubble appears above it
@@ -24,6 +25,7 @@ bubbleManager.setPetPosition(petBounds.y);
 
 // Make context menu globally accessible
 (window as any).__contextMenu = contextMenu;
+(window as any).__subContextMenu = subContextMenu;
 
 // Expose inputBox globally for PetRenderer double-click handler
 (window as any).__inputBox = inputBox;

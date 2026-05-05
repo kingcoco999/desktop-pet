@@ -27,15 +27,18 @@ export function registerAIHandlers(aiService: AIService, storage: StorageService
 
       // Get AI response
       const response = await aiService.chat(message);
+      console.log('[IPC ai:chat] Intent:', response.intent, 'Reply:', response.reply?.slice(0, 80));
 
-      // Save assistant message
-      storage.addMessage('assistant', response.reply, response.mood, response.intent);
+      // Process intent and get final reply
+      const finalResponse = await processIntent(response, storage, aiService, getPetWindow);
+      console.log('[IPC ai:chat] Final reply:', finalResponse.reply?.slice(0, 120));
 
-      // Process intent
-      await processIntent(response, storage, aiService, getPetWindow);
+      // Save assistant message with final reply
+      storage.addMessage('assistant', finalResponse.reply, finalResponse.mood, finalResponse.intent);
 
-      return response;
+      return finalResponse;
     } catch (error: any) {
+      console.error('[IPC ai:chat] Error:', error.message);
       const errorResponse = {
         intent: 'chat' as const,
         reply: `出了点问题喵: ${error.message}`,
@@ -47,12 +50,22 @@ export function registerAIHandlers(aiService: AIService, storage: StorageService
   });
 }
 
+function toUTCIso(timeStr: string): string {
+  if (!timeStr) return timeStr;
+  // Already UTC
+  if (timeStr.endsWith('Z') || timeStr.includes('+')) return timeStr;
+  // Local time without timezone - parse as local and convert to UTC
+  const d = new Date(timeStr);
+  if (isNaN(d.getTime())) return timeStr;
+  return d.toISOString();
+}
+
 async function processIntent(
   response: { intent: string; reply: string; mood: string; data?: any },
   storage: StorageService,
   aiService: AIService,
   getPetWindow: () => BrowserWindow | null
-): Promise<void> {
+): Promise<{ intent: string; reply: string; mood: string; data?: any }> {
   const { intent, data } = response;
 
   switch (intent) {
@@ -62,11 +75,11 @@ async function processIntent(
           title: data.title,
           description: data.description,
           priority: data.priority || 'normal',
-          due: data.due || undefined,
+          due: data.due ? toUTCIso(data.due) : undefined,
           source: 'ai',
         });
       }
-      break;
+      return response;
 
     case 'create_note':
       if (data?.content) {
@@ -76,18 +89,18 @@ async function processIntent(
           source: 'ai',
         });
       }
-      break;
+      return response;
 
     case 'create_reminder':
       if (data?.content && data?.time) {
         storage.createReminder({
           content: data.content,
-          time: data.time,
+          time: toUTCIso(data.time),
           repeat: data.repeat || 'none',
           source: 'ai',
         });
       }
-      break;
+      return response;
 
     case 'query_todos': {
       const todos = storage.getAllTodos();
@@ -98,12 +111,12 @@ async function processIntent(
         response.reply,
         `查询结果：\n${summary}\n\n请用你的风格回复用户。`
       );
-      // Update the last assistant message with the contextual reply
-      const petWin = getPetWindow();
-      if (petWin && !petWin.isDestroyed()) {
-        petWin.webContents.send('bubble:show', contextResponse.reply);
-      }
-      break;
+      return {
+        intent: contextResponse.intent || response.intent,
+        reply: contextResponse.reply || response.reply,
+        mood: contextResponse.mood || response.mood,
+        data: contextResponse.data || response.data,
+      };
     }
 
     case 'query_notes': {
@@ -115,11 +128,12 @@ async function processIntent(
         response.reply,
         `查询结果：\n${summary}\n\n请用你的风格回复用户。`
       );
-      const petWin = getPetWindow();
-      if (petWin && !petWin.isDestroyed()) {
-        petWin.webContents.send('bubble:show', contextResponse.reply);
-      }
-      break;
+      return {
+        intent: contextResponse.intent || response.intent,
+        reply: contextResponse.reply || response.reply,
+        mood: contextResponse.mood || response.mood,
+        data: contextResponse.data || response.data,
+      };
     }
 
     case 'query_reminders': {
@@ -131,11 +145,12 @@ async function processIntent(
         response.reply,
         `查询结果：\n${summary}\n\n请用你的风格回复用户。`
       );
-      const petWin = getPetWindow();
-      if (petWin && !petWin.isDestroyed()) {
-        petWin.webContents.send('bubble:show', contextResponse.reply);
-      }
-      break;
+      return {
+        intent: contextResponse.intent || response.intent,
+        reply: contextResponse.reply || response.reply,
+        mood: contextResponse.mood || response.mood,
+        data: contextResponse.data || response.data,
+      };
     }
 
     case 'delete_todo':
@@ -143,14 +158,14 @@ async function processIntent(
         const todo = storage.findTodoByTitle(data.todoTitle);
         if (todo) storage.deleteTodo(todo.id);
       }
-      break;
+      return response;
 
     case 'delete_note':
       if (data?.noteContent) {
         const notes = storage.findNoteByContent(data.noteContent);
         if (notes.length > 0) storage.deleteNote(notes[0].id);
       }
-      break;
+      return response;
 
     case 'delete_reminder':
       if (data?.reminderContent) {
@@ -158,20 +173,23 @@ async function processIntent(
         const found = reminders.find(r => r.content.includes(data.reminderContent));
         if (found) storage.deleteReminder(found.id);
       }
-      break;
+      return response;
 
     case 'update_todo':
       if (data?.todoTitle && data?.updates) {
         const todo = storage.findTodoByTitle(data.todoTitle);
         if (todo) storage.updateTodo(todo.id, data.updates);
       }
-      break;
+      return response;
 
     case 'complete_todo':
       if (data?.todoTitle) {
         const todo = storage.findTodoByTitle(data.todoTitle);
         if (todo) storage.toggleTodo(todo.id);
       }
-      break;
+      return response;
+
+    default:
+      return response;
   }
 }
