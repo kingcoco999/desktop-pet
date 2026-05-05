@@ -316,17 +316,29 @@ function extractKeyword(message: string, stopWords: string[]): string {
   const text = String(message || '')
     .replace(/[，。！？、,.!?;；:："'""''【】\[\]()（）~～]/g, ' ')
     .trim();
-  const parts = text.split(/\s+/).filter(Boolean);
-  const meaningful = parts.filter(part => {
-    const lower = part.toLowerCase();
-    return !stopWords.some(sw => lower === sw || lower.includes(sw));
-  });
-  return meaningful.join(' ').trim();
+  const tokens = text.split(/\s+/).filter(Boolean);
+  const meaningful: string[] = [];
+  for (const token of tokens) {
+    const lower = token.toLowerCase();
+    if (stopWords.some(sw => lower === sw)) continue;
+    meaningful.push(token);
+  }
+  if (meaningful.length > 0) return meaningful.join(' ').trim();
+  // Fallback: for continuous Chinese text like "删除待办学习英语", scan character by character
+  const chars = String(message || '').replace(/[，。！？、,.!?;；:："'""''【】\[\]()（）~～\s]+/g, '');
+  let result = '';
+  for (const ch of chars) {
+    if (!stopWords.includes(ch)) result += ch;
+  }
+  return result.trim();
 }
 
 function sanitizeReply(reply: string): string {
   if (!reply) return '';
-  return String(reply)
-    .replace(/^["'""]+|["'""]+$/g, '')
-    .trim();
+  let text = String(reply).trim();
+  // Strip markdown code block wrappers: ```json ... ``` or ``` ... ```
+  text = text.replace(/^```(?:json|JSON)?\s*\n?/g, '').replace(/\n?```\s*$/g, '');
+  // Strip surrounding quotes
+  text = text.replace(/^["'""]+|["'""]+$/g, '');
+  return text.trim();
 }

@@ -67,14 +67,10 @@ const toast = inject<any>('toast');
 const confirmDialog = inject<any>('confirm');
 
 const quickActions = [
-  { icon: '📋', label: '查看待办', prompt: '帮我看看现在有哪些待办事项' },
-  { icon: '📝', label: '查看记事', prompt: '帮我看看有哪些记事' },
-  { icon: '🔔', label: '查看提醒', prompt: '帮我看看有哪些提醒' },
+  { icon: '📋', label: '查看全部', prompt: '帮我看看现在有哪些待办、记事和提醒' },
   { icon: '✅', label: '新建待办', prompt: '帮我创建一个待办：' },
-  { icon: '📒', label: '新建记事', prompt: '帮我创建一条记事：' },
-  { icon: '⏰', label: '设置提醒', prompt: '提醒我' },
+  { icon: '🔔', label: '设置提醒', prompt: '提醒我' },
   { icon: '🗑️', label: '删除待办', prompt: '帮我删除待办：' },
-  { icon: '🧹', label: '清空待办', prompt: '帮我清空所有待办' },
 ];
 
 async function loadMessages() {

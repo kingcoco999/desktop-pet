@@ -128,9 +128,10 @@ export class AIService {
       if (parsedResponses.length > 0) {
         const [first] = parsedResponses;
         console.log('[chat] Parsed intent:', first.intent, 'actions:', parsedResponses.length);
+        const cleanReply = parsedResponses.map(item => this.stripCodeBlock(item.reply || '')).filter(Boolean).join('\n');
         return {
           intent: first.intent || 'chat',
-          reply: parsedResponses.map(item => item.reply).filter(Boolean).join('\n') || content,
+          reply: cleanReply || content,
           mood: first.mood || 'normal',
           data: parsedResponses.length > 1 ? { actions: parsedResponses } : first.data,
         };
@@ -313,6 +314,14 @@ export class AIService {
       mood: value.mood || 'normal',
       data: value.data,
     } as AIResponse;
+  }
+
+  private stripCodeBlock(text: string): string {
+    if (!text) return '';
+    return String(text)
+      .replace(/^```(?:json|JSON)?\s*\n?/g, '')
+      .replace(/\n?```\s*$/g, '')
+      .trim();
   }
 
   private extractJsonObjects(text: string): string[] {
