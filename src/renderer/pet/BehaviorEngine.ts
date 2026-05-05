@@ -3,15 +3,21 @@ import { PetState } from './PetState';
 import { PetRenderer } from './PetRenderer';
 
 export class BehaviorEngine {
-  private petState: PetState;
-  private renderer: PetRenderer;
-  private enabled: boolean = true;
-  private walkEnabled: boolean = true;
+  public petState: PetState;
+  public renderer: PetRenderer;
+  public enabled: boolean = true;
+  public walkEnabled: boolean = true;
+  public restEnabled: boolean = true;
+  public interactEnabled: boolean = true;
+  public bubbleEnabled: boolean = true;
+  public collisionEnabled: boolean = true;
+
   private idleTimer: number = 0;
   private walkTimer: number = 0;
   private isWalking: boolean = false;
-  private walkDirection: 'left' | 'right' = 'left';
+  private walkDirection: 'left' | 'right' | 'up' | 'down' = 'left';
   private walkDistance: number = 0;
+  private walkSpeed: number = 0.05;
   private animFrameId: number = 0;
   private lastTime: number = 0;
 
@@ -71,8 +77,52 @@ export class BehaviorEngine {
         }
       }
 
+      // Random actions while idle
+      if (!this.isWalking && this.interactEnabled) {
+        // Random jump
+        if (this.idleTimer > 15000 && Math.random() < 0.002) {
+          this.petState.setAnimation('jump');
+          this.idleTimer = 0;
+          setTimeout(() => {
+            if (this.petState.currentAnimation === 'jump') {
+              this.petState.setAnimation('idle');
+            }
+          }, 1500);
+        }
+        // Random play
+        else if (this.idleTimer > 10000 && Math.random() < 0.001) {
+          this.petState.setAnimation('play');
+          this.idleTimer = 0;
+          setTimeout(() => {
+            if (this.petState.currentAnimation === 'play') {
+              this.petState.setAnimation('idle');
+            }
+          }, 2000);
+        }
+        // Random scratch
+        else if (this.idleTimer > 8000 && Math.random() < 0.003) {
+          this.petState.setAnimation('scratch');
+          this.idleTimer = 0;
+          setTimeout(() => {
+            if (this.petState.currentAnimation === 'scratch') {
+              this.petState.setAnimation('idle');
+            }
+          }, 2000);
+        }
+        // Random rub
+        else if (this.idleTimer > 12000 && Math.random() < 0.001) {
+          this.petState.setAnimation('rub');
+          this.idleTimer = 0;
+          setTimeout(() => {
+            if (this.petState.currentAnimation === 'rub') {
+              this.petState.setAnimation('idle');
+            }
+          }, 2000);
+        }
+      }
+
       // Check for sit trigger
-      if (this.idleTimer >= 5000 && !this.isWalking) {
+      if (this.restEnabled && this.idleTimer >= 5000 && !this.isWalking) {
         const sitThreshold = 5000 + Math.random() * 10000;
         if (this.idleTimer >= sitThreshold) {
           if (Math.random() < this.idleToSitChance) {
@@ -115,9 +165,9 @@ export class BehaviorEngine {
         return;
       }
 
-      const speed = 0.05; // pixels per ms
-      const moveX = dt * speed * (this.walkDirection === 'left' ? -1 : 1);
-      this.walkDistance += Math.abs(dt * speed);
+      const moveX = dt * this.walkSpeed * (this.walkDirection === 'left' ? -1 : this.walkDirection === 'right' ? 1 : 0);
+      const moveY = dt * this.walkSpeed * (this.walkDirection === 'up' ? -1 : this.walkDirection === 'down' ? 1 : 0);
+      this.walkDistance += Math.sqrt(moveX * moveX + moveY * moveY);
 
       const maxWalk = 100 + Math.random() * 100;
 
@@ -128,13 +178,15 @@ export class BehaviorEngine {
         const ipc = (window as any).__ipcRenderer;
         if (ipc) {
           ipc.invoke('pet:get-position').then((pos: { x: number; y: number }) => {
-            ipc.send('pet:move', { x: pos.x + moveX, y: pos.y });
+            ipc.send('pet:move', { x: pos.x + moveX, y: pos.y + moveY });
           });
         }
       }
 
       // Edge detection
-      this.checkEdge();
+      if (this.collisionEnabled) {
+        this.checkEdge();
+      }
     }
 
     this.animFrameId = requestAnimationFrame(this.update);
@@ -143,9 +195,16 @@ export class BehaviorEngine {
   private startWalking(): void {
     this.isWalking = true;
     this.walkDistance = 0;
-    this.walkDirection = Math.random() > 0.5 ? 'left' : 'right';
-    this.petState.setAnimation(this.walkDirection === 'left' ? 'walk-left' : 'walk-right');
-    this.petState.setFacing(this.walkDirection);
+    // Random direction including up and down
+    const directions: ('left' | 'right' | 'up' | 'down')[] = ['left', 'right', 'up', 'down'];
+    this.walkDirection = directions[Math.floor(Math.random() * directions.length)];
+    const animMap: Record<string, PetAnimationState> = {
+      'left': 'walk-left',
+      'right': 'walk-right',
+      'up': 'walk-up',
+      'down': 'walk-down',
+    };
+    this.petState.setAnimation(animMap[this.walkDirection]);
   }
 
   private stopWalking(): void {
@@ -155,19 +214,22 @@ export class BehaviorEngine {
   }
 
   private checkEdge(): void {
-    const canvasSize = this.renderer.getCanvasSize();
     const bounds = this.renderer.getPetBounds();
     const margin = 20;
 
-    // Check if near edge
+    // Check canvas edges
     if (this.walkDirection === 'left' && bounds.x <= margin) {
       this.walkDirection = 'right';
       this.petState.setAnimation('walk-right');
-      this.petState.setFacing('right');
-    } else if (this.walkDirection === 'right' && bounds.x + bounds.width >= canvasSize.width - margin) {
+    } else if (this.walkDirection === 'right' && bounds.x + bounds.width >= this.renderer.getCanvasSize().width - margin) {
       this.walkDirection = 'left';
       this.petState.setAnimation('walk-left');
-      this.petState.setFacing('left');
+    } else if (this.walkDirection === 'up' && bounds.y <= margin) {
+      this.walkDirection = 'down';
+      this.petState.setAnimation('walk-down');
+    } else if (this.walkDirection === 'down' && bounds.y + bounds.height >= this.renderer.getCanvasSize().height - margin) {
+      this.walkDirection = 'up';
+      this.petState.setAnimation('walk-up');
     }
   }
 }

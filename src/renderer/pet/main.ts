@@ -32,6 +32,7 @@ bubbleManager.setPetPosition(petBounds.y);
 (window as any).__petRenderer = renderer;
 (window as any).__petState = petState;
 (window as any).__bubbleManager = bubbleManager;
+(window as any).__behaviorEngine = behaviorEngine;
 
 // Start rendering
 renderer.start();

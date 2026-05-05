@@ -274,6 +274,171 @@ export class PetRenderer {
       loop: false,
       next: 'happy',
     });
+
+    // WALK-UP animation (front-facing cat walking toward viewer)
+    this.animations.set('walk-up', {
+      frames: [
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatWalkUp(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 0);
+          },
+          duration: 200,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatWalkUp(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 1);
+          },
+          duration: 200,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatWalkUp(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 2);
+          },
+          duration: 200,
+        },
+      ],
+      loop: true,
+    });
+
+    // WALK-DOWN animation (back-facing cat walking away)
+    this.animations.set('walk-down', {
+      frames: [
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatWalkDown(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 0);
+          },
+          duration: 200,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatWalkDown(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 1);
+          },
+          duration: 200,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatWalkDown(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 2);
+          },
+          duration: 200,
+        },
+      ],
+      loop: true,
+    });
+
+    // PLAY animation (cat playing/rolling)
+    this.animations.set('play', {
+      frames: [
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatPlay(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, pinkColor, 0);
+          },
+          duration: 300,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatPlay(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, pinkColor, 1);
+          },
+          duration: 300,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatPlay(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, pinkColor, 2);
+          },
+          duration: 300,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatPlay(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, pinkColor, 3);
+          },
+          duration: 300,
+        },
+      ],
+      loop: false,
+      next: 'idle',
+    });
+
+    // JUMP animation
+    this.animations.set('jump', {
+      frames: [
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatJump(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 0);
+          },
+          duration: 150,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatJump(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 1);
+          },
+          duration: 200,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatJump(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 2);
+          },
+          duration: 150,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatJump(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 3);
+          },
+          duration: 200,
+        },
+      ],
+      loop: false,
+      next: 'idle',
+    });
+
+    // SCRATCH animation (cat scratching with hind leg)
+    this.animations.set('scratch', {
+      frames: [
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatScratch(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 0);
+          },
+          duration: 150,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatScratch(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 1);
+          },
+          duration: 150,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatScratch(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, 2);
+          },
+          duration: 150,
+        },
+      ],
+      loop: true,
+    });
+
+    // RUB animation (cat rubbing against something)
+    this.animations.set('rub', {
+      frames: [
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatRub(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, pinkColor, 0);
+          },
+          duration: 400,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatRub(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, pinkColor, 1);
+          },
+          duration: 400,
+        },
+        {
+          draw: (ctx, x, y) => {
+            this.drawCatRub(ctx, x, y, s, catColor, darkCatColor, eyeColor, noseColor, whiteColor, pinkColor, 2);
+          },
+          duration: 400,
+        },
+      ],
+      loop: false,
+      next: 'idle',
+    });
   }
 
   // Draw base cat with breathing variation
@@ -454,6 +619,294 @@ export class PetRenderer {
     }
   }
 
+  // Walk-up animation (front-facing, walking toward viewer)
+  private drawCatWalkUp(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, cat: string, dark: string, eye: string, nose: string, white: string, frame: number): void {
+    const p = s / 16;
+    const legOffset = frame % 2 === 0 ? p : -p;
+    const bounce = frame === 1 ? -1 : 0;
+
+    // Ears (front view - both visible)
+    px(ctx, x + 2*p, y + 1*p + bounce, p, p, cat);
+    px(ctx, x + 3*p, y + 0*p + bounce, p, p, cat);
+    px(ctx, x + 4*p, y + 1*p + bounce, p, p, cat);
+    px(ctx, x + 11*p, y + 1*p + bounce, p, p, cat);
+    px(ctx, x + 12*p, y + 0*p + bounce, p, p, cat);
+    px(ctx, x + 13*p, y + 1*p + bounce, p, p, cat);
+
+    // Inner ears
+    px(ctx, x + 3*p, y + 1*p + bounce, p, p, '#FFB6C1');
+    px(ctx, x + 12*p, y + 1*p + bounce, p, p, '#FFB6C1');
+
+    // Head (front view)
+    px(ctx, x + 2*p, y + 2*p + bounce, 12*p, p, cat);
+    px(ctx, x + 1*p, y + 3*p + bounce, 14*p, p, cat);
+    px(ctx, x + 1*p, y + 4*p + bounce, 14*p, p, cat);
+    px(ctx, x + 1*p, y + 5*p + bounce, 14*p, p, cat);
+    px(ctx, x + 2*p, y + 6*p + bounce, 12*p, p, cat);
+
+    // Eyes (front view - both visible)
+    px(ctx, x + 4*p, y + 4*p + bounce, 2*p, p, white);
+    px(ctx, x + 5*p, y + 4*p + bounce, p, p, eye);
+    px(ctx, x + 10*p, y + 4*p + bounce, 2*p, p, white);
+    px(ctx, x + 10*p, y + 4*p + bounce, p, p, eye);
+
+    // Nose
+    px(ctx, x + 7*p, y + 5*p + bounce, 2*p, p, nose);
+
+    // Mouth
+    px(ctx, x + 6*p, y + 6*p + bounce, p, p, dark);
+    px(ctx, x + 7*p, y + 6*p + bounce, 2*p, p, white);
+    px(ctx, x + 9*p, y + 6*p + bounce, p, p, dark);
+
+    // Body
+    px(ctx, x + 3*p, y + 7*p + bounce, 10*p, p, cat);
+    px(ctx, x + 2*p, y + 8*p + bounce, 12*p, p, cat);
+    px(ctx, x + 2*p, y + 9*p + bounce, 12*p, p, cat);
+    px(ctx, x + 2*p, y + 10*p + bounce, 12*p, p, cat);
+    px(ctx, x + 3*p, y + 11*p + bounce, 10*p, p, cat);
+
+    // Front legs (alternating)
+    ctx.clearRect(x + 3*p, y + 12*p + bounce, 2*p, 3*p);
+    ctx.clearRect(x + 11*p, y + 12*p + bounce, 2*p, 3*p);
+    px(ctx, x + 3*p, y + 12*p + bounce + legOffset, 2*p, 2*p, cat);
+    px(ctx, x + 11*p, y + 12*p + bounce - legOffset, 2*p, 2*p, cat);
+
+    // Tail (hidden behind body in front view)
+  }
+
+  // Walk-down animation (back-facing, walking away)
+  private drawCatWalkDown(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, cat: string, dark: string, eye: string, nose: string, white: string, frame: number): void {
+    const p = s / 16;
+    const legOffset = frame % 2 === 0 ? p : -p;
+    const bounce = frame === 1 ? -1 : 0;
+
+    // Ears (back view - tips visible)
+    px(ctx, x + 3*p, y + 0*p + bounce, p, p, cat);
+    px(ctx, x + 12*p, y + 0*p + bounce, p, p, cat);
+
+    // Head (back view - no face)
+    px(ctx, x + 2*p, y + 2*p + bounce, 12*p, p, cat);
+    px(ctx, x + 1*p, y + 3*p + bounce, 14*p, p, cat);
+    px(ctx, x + 1*p, y + 4*p + bounce, 14*p, p, cat);
+    px(ctx, x + 1*p, y + 5*p + bounce, 14*p, p, cat);
+    px(ctx, x + 2*p, y + 6*p + bounce, 12*p, p, cat);
+
+    // Body
+    px(ctx, x + 3*p, y + 7*p + bounce, 10*p, p, cat);
+    px(ctx, x + 2*p, y + 8*p + bounce, 12*p, p, cat);
+    px(ctx, x + 2*p, y + 9*p + bounce, 12*p, p, cat);
+    px(ctx, x + 2*p, y + 10*p + bounce, 12*p, p, cat);
+    px(ctx, x + 3*p, y + 11*p + bounce, 10*p, p, cat);
+
+    // Back legs (alternating)
+    ctx.clearRect(x + 3*p, y + 12*p + bounce, 2*p, 3*p);
+    ctx.clearRect(x + 11*p, y + 12*p + bounce, 2*p, 3*p);
+    px(ctx, x + 3*p, y + 12*p + bounce + legOffset, 2*p, 2*p, cat);
+    px(ctx, x + 11*p, y + 12*p + bounce - legOffset, 2*p, 2*p, cat);
+
+    // Tail (visible, wagging)
+    const tailWag = frame === 0 ? 0 : (frame === 1 ? p : -p);
+    px(ctx, x + 13*p, y + 9*p + bounce, 2*p, p, dark);
+    px(ctx, x + 14*p + tailWag, y + 8*p + bounce, 2*p, p, dark);
+    px(ctx, x + 15*p + tailWag, y + 7*p + bounce, p, p, dark);
+  }
+
+  // Play animation (cat playing/rolling)
+  private drawCatPlay(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, cat: string, dark: string, eye: string, nose: string, white: string, pink: string, frame: number): void {
+    const p = s / 16;
+
+    if (frame === 0) {
+      // Crouch before pounce
+      this.drawCatBase(ctx, x, y + 2, s, cat, dark, eye, nose, white, 0);
+      px(ctx, x + 2*p, y + 12*p, 12*p, 2*p, cat);
+    } else if (frame === 1) {
+      // Mid pounce - body stretched
+      px(ctx, x + 2*p, y + 2*p, 12*p, p, cat);
+      px(ctx, x + 1*p, y + 3*p, 14*p, p, cat);
+      px(ctx, x + 1*p, y + 4*p, 14*p, p, cat);
+      px(ctx, x + 1*p, y + 5*p, 14*p, p, cat);
+      px(ctx, x + 2*p, y + 6*p, 12*p, p, cat);
+      // Eyes wide open
+      px(ctx, x + 4*p, y + 4*p, 2*p, p, white);
+      px(ctx, x + 5*p, y + 4*p, p, p, eye);
+      px(ctx, x + 10*p, y + 4*p, 2*p, p, white);
+      px(ctx, x + 10*p, y + 4*p, p, p, eye);
+      px(ctx, x + 7*p, y + 5*p, 2*p, p, nose);
+      // Body stretched
+      px(ctx, x + 3*p, y + 7*p, 10*p, p, cat);
+      px(ctx, x + 2*p, y + 8*p, 12*p, p, cat);
+      px(ctx, x + 2*p, y + 9*p, 12*p, p, cat);
+      // Front paws extended
+      px(ctx, x + 1*p, y + 10*p, 2*p, 2*p, cat);
+      px(ctx, x + 13*p, y + 10*p, 2*p, 2*p, cat);
+      // Back legs
+      px(ctx, x + 3*p, y + 11*p, 2*p, 2*p, cat);
+      px(ctx, x + 11*p, y + 11*p, 2*p, 2*p, cat);
+    } else if (frame === 2) {
+      // Rolling on back - belly up
+      px(ctx, x + 2*p, y + 4*p, 12*p, p, cat);
+      px(ctx, x + 1*p, y + 5*p, 14*p, p, cat);
+      px(ctx, x + 1*p, y + 6*p, 14*p, p, cat);
+      px(ctx, x + 1*p, y + 7*p, 14*p, p, white); // belly
+      px(ctx, x + 2*p, y + 8*p, 12*p, p, cat);
+      // Head tilted
+      px(ctx, x + 3*p, y + 3*p, 6*p, p, cat);
+      px(ctx, x + 2*p, y + 2*p, 8*p, p, cat);
+      // Happy closed eyes
+      px(ctx, x + 3*p, y + 3*p, 2*p, p, cat);
+      px(ctx, x + 7*p, y + 3*p, 2*p, p, cat);
+      // Paws in air
+      px(ctx, x + 2*p, y + 9*p, 2*p, 2*p, cat);
+      px(ctx, x + 12*p, y + 9*p, 2*p, 2*p, cat);
+      // Tail
+      px(ctx, x + 13*p, y + 5*p, 2*p, p, dark);
+      px(ctx, x + 15*p, y + 4*p, p, p, dark);
+    } else {
+      // Settling back - blush
+      this.drawCatBase(ctx, x, y, s, cat, dark, eye, nose, white, 1);
+      // Blush
+      ctx.fillStyle = pink;
+      ctx.globalAlpha = 0.5;
+      ctx.fillRect(x + 3*p, y + 5*p, 2*p, p);
+      ctx.fillRect(x + 11*p, y + 5*p, 2*p, p);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Jump animation
+  private drawCatJump(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, cat: string, dark: string, eye: string, nose: string, white: string, frame: number): void {
+    const p = s / 16;
+
+    if (frame === 0) {
+      // Crouch before jump
+      this.drawCatBase(ctx, x, y + 3, s, cat, dark, eye, nose, white, 0);
+      px(ctx, x + 2*p, y + 13*p, 12*p, 2*p, cat);
+    } else if (frame === 1) {
+      // Jumping up - body stretched, legs extended
+      const jumpY = -4;
+      px(ctx, x + 2*p, y + 1*p + jumpY, 12*p, p, cat);
+      px(ctx, x + 1*p, y + 2*p + jumpY, 14*p, p, cat);
+      px(ctx, x + 1*p, y + 3*p + jumpY, 14*p, p, cat);
+      px(ctx, x + 1*p, y + 4*p + jumpY, 14*p, p, cat);
+      px(ctx, x + 2*p, y + 5*p + jumpY, 12*p, p, cat);
+      // Eyes
+      px(ctx, x + 4*p, y + 3*p + jumpY, 2*p, p, white);
+      px(ctx, x + 5*p, y + 3*p + jumpY, p, p, eye);
+      px(ctx, x + 10*p, y + 3*p + jumpY, 2*p, p, white);
+      px(ctx, x + 10*p, y + 3*p + jumpY, p, p, eye);
+      px(ctx, x + 7*p, y + 4*p + jumpY, 2*p, p, nose);
+      // Body stretched
+      px(ctx, x + 3*p, y + 6*p + jumpY, 10*p, p, cat);
+      px(ctx, x + 2*p, y + 7*p + jumpY, 12*p, p, cat);
+      px(ctx, x + 2*p, y + 8*p + jumpY, 12*p, p, cat);
+      // Legs extended down
+      px(ctx, x + 3*p, y + 9*p + jumpY, 2*p, 3*p, cat);
+      px(ctx, x + 11*p, y + 9*p + jumpY, 2*p, 3*p, cat);
+      // Ears
+      px(ctx, x + 2*p, y + 0*p + jumpY, p, p, cat);
+      px(ctx, x + 3*p, y - 1*p + jumpY, p, p, cat);
+      px(ctx, x + 4*p, y + 0*p + jumpY, p, p, cat);
+      px(ctx, x + 11*p, y + 0*p + jumpY, p, p, cat);
+      px(ctx, x + 12*p, y - 1*p + jumpY, p, p, cat);
+      px(ctx, x + 13*p, y + 0*p + jumpY, p, p, cat);
+    } else if (frame === 2) {
+      // At peak - slight pause
+      this.drawCatJump(ctx, x, y, s, cat, dark, eye, nose, white, 1);
+    } else {
+      // Landing - squished
+      px(ctx, x + 1*p, y + 3*p, 14*p, p, cat);
+      px(ctx, x + 0*p, y + 4*p, 16*p, p, cat);
+      px(ctx, x + 0*p, y + 5*p, 16*p, p, cat);
+      px(ctx, x + 0*p, y + 6*p, 16*p, p, cat);
+      px(ctx, x + 1*p, y + 7*p, 14*p, p, cat);
+      // Eyes half-closed
+      px(ctx, x + 4*p, y + 5*p, 2*p, p, white);
+      px(ctx, x + 5*p, y + 5*p, p, p, eye);
+      px(ctx, x + 10*p, y + 5*p, 2*p, p, white);
+      px(ctx, x + 10*p, y + 5*p, p, p, eye);
+      px(ctx, x + 7*p, y + 6*p, 2*p, p, nose);
+      // Body squished wide
+      px(ctx, x + 2*p, y + 8*p, 12*p, p, cat);
+      px(ctx, x + 1*p, y + 9*p, 14*p, p, cat);
+      px(ctx, x + 1*p, y + 10*p, 14*p, p, cat);
+      // Legs spread
+      px(ctx, x + 1*p, y + 11*p, 3*p, 2*p, cat);
+      px(ctx, x + 12*p, y + 11*p, 3*p, 2*p, cat);
+    }
+  }
+
+  // Scratch animation (hind leg scratching)
+  private drawCatScratch(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, cat: string, dark: string, eye: string, nose: string, white: string, frame: number): void {
+    const p = s / 16;
+    // Base sitting cat
+    this.drawCatBase(ctx, x, y + 2, s, cat, dark, eye, nose, white, 0);
+    // Tucked front legs
+    px(ctx, x + 2*p, y + 12*p, 12*p, 2*p, cat);
+    // Scratching hind leg
+    const scratchOffset = frame === 0 ? 0 : (frame === 1 ? -2*p : 2*p);
+    ctx.clearRect(x + 11*p, y + 12*p, 2*p, 3*p);
+    px(ctx, x + 11*p, y + 11*p + scratchOffset, 2*p, 3*p, cat);
+    // Ear twitch
+    if (frame === 1) {
+      px(ctx, x + 12*p, y + 0*p, p, p, cat);
+    }
+  }
+
+  // Rub animation (cat rubbing against something)
+  private drawCatRub(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, cat: string, dark: string, eye: string, nose: string, white: string, pink: string, frame: number): void {
+    const p = s / 16;
+    const tiltX = frame === 0 ? 0 : (frame === 1 ? 2 : -1);
+
+    // Head tilted
+    px(ctx, x + (2+tiltX)*p, y + 2*p, 12*p, p, cat);
+    px(ctx, x + (1+tiltX)*p, y + 3*p, 14*p, p, cat);
+    px(ctx, x + (1+tiltX)*p, y + 4*p, 14*p, p, cat);
+    px(ctx, x + (1+tiltX)*p, y + 5*p, 14*p, p, cat);
+    px(ctx, x + (2+tiltX)*p, y + 6*p, 12*p, p, cat);
+
+    // Eyes (happy, half-closed)
+    px(ctx, x + (4+tiltX)*p, y + 4*p, 2*p, p, cat);
+    px(ctx, x + (10+tiltX)*p, y + 4*p, 2*p, p, cat);
+
+    // Nose
+    px(ctx, x + (7+tiltX)*p, y + 5*p, 2*p, p, nose);
+
+    // Ears
+    px(ctx, x + (2+tiltX)*p, y + 1*p, p, p, cat);
+    px(ctx, x + (3+tiltX)*p, y + 0*p, p, p, cat);
+    px(ctx, x + (4+tiltX)*p, y + 1*p, p, p, cat);
+    px(ctx, x + (11+tiltX)*p, y + 1*p, p, p, cat);
+    px(ctx, x + (12+tiltX)*p, y + 0*p, p, p, cat);
+    px(ctx, x + (13+tiltX)*p, y + 1*p, p, p, cat);
+
+    // Inner ears
+    px(ctx, x + (3+tiltX)*p, y + 1*p, p, p, '#FFB6C1');
+    px(ctx, x + (12+tiltX)*p, y + 1*p, p, p, '#FFB6C1');
+
+    // Body
+    px(ctx, x + 3*p, y + 7*p, 10*p, p, cat);
+    px(ctx, x + 2*p, y + 8*p, 12*p, p, cat);
+    px(ctx, x + 2*p, y + 9*p, 12*p, p, cat);
+    px(ctx, x + 2*p, y + 10*p, 12*p, p, cat);
+    px(ctx, x + 3*p, y + 11*p, 10*p, p, cat);
+
+    // Legs
+    px(ctx, x + 3*p, y + 12*p, 2*p, 2*p, cat);
+    px(ctx, x + 11*p, y + 12*p, 2*p, 2*p, cat);
+
+    // Tail
+    px(ctx, x + 13*p, y + 9*p, 2*p, p, dark);
+    px(ctx, x + 14*p, y + 8*p, 2*p, p, dark);
+    px(ctx, x + 15*p, y + 7*p, p, p, dark);
+
+    // Blush when rubbing
+    ctx.fillStyle = pink;
+    ctx.globalAlpha = 0.4;
+    ctx.fillRect(x + (3+tiltX)*p, y + 5*p, 2*p, p);
+    ctx.fillRect(x + (11+tiltX)*p, y + 5*p, 2*p, p);
+    ctx.globalAlpha = 1;
+  }
+
   start(): void {
     this.lastTime = performance.now();
     this.render();
@@ -607,6 +1060,8 @@ export class PetRenderer {
         // Position menu to the right of the pet
         const petRight = this.offsetX + this.size + 20;
         const petTop = this.offsetY - 20;
+        const behavior = (window as any).__behaviorEngine;
+        const toggleLabel = (flag: boolean, text: string) => `${flag ? '✅' : '⬜'} ${text}`;
         menu.show(petRight, petTop, [
           { label: '💬 打开对话', action: () => {
             const inputBox = (window as any).__inputBox;
@@ -623,6 +1078,22 @@ export class PetRenderer {
           { label: '⏰ 设置提醒', action: () => {
             const ipc = (window as any).__ipcRenderer;
             if (ipc) ipc.send('window:open-console');
+          }},
+          { separator: true, label: '' },
+          { label: toggleLabel(behavior?.walkEnabled ?? true, '自由行走'), action: () => {
+            if (behavior) behavior.walkEnabled = !behavior.walkEnabled;
+          }},
+          { label: toggleLabel(behavior?.restEnabled ?? true, '自动休息'), action: () => {
+            if (behavior) behavior.restEnabled = !behavior.restEnabled;
+          }},
+          { label: toggleLabel(behavior?.interactEnabled ?? true, '互动模式'), action: () => {
+            if (behavior) behavior.interactEnabled = !behavior.interactEnabled;
+          }},
+          { label: toggleLabel(behavior?.collisionEnabled ?? true, '碰撞边界'), action: () => {
+            if (behavior) behavior.collisionEnabled = !behavior.collisionEnabled;
+          }},
+          { label: toggleLabel(behavior?.bubbleEnabled ?? true, '气泡显示'), action: () => {
+            if (behavior) behavior.bubbleEnabled = !behavior.bubbleEnabled;
           }},
           { separator: true, label: '' },
           { label: '🖥️ 打开控制台', action: () => {

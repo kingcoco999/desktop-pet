@@ -81,13 +81,19 @@ export type PetAnimationState =
   | 'idle'
   | 'walk-left'
   | 'walk-right'
+  | 'walk-up'
+  | 'walk-down'
   | 'sit'
   | 'sleep'
   | 'talk'
   | 'happy'
   | 'eat'
   | 'drag'
-  | 'fall';
+  | 'fall'
+  | 'play'
+  | 'jump'
+  | 'scratch'
+  | 'rub';
 
 export type Intent =
   | 'chat'

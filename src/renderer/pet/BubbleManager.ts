@@ -33,6 +33,10 @@ export class BubbleManager {
   }
 
   show(message: string, duration?: number): void {
+    // Check if bubble display is enabled
+    const behavior = (window as any).__behaviorEngine;
+    if (behavior && !behavior.bubbleEnabled) return;
+
     // Remove existing bubble
     this.hide();
 
