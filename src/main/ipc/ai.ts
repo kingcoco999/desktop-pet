@@ -304,3 +304,29 @@ function normalizeTodoUpdates(updates: any) {
   }
   return next;
 }
+
+function normalizeCommandText(text: string): string {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[，。！？、,.!?;；:："'""''【】\[\]()（）~～]/g, '');
+}
+
+function extractKeyword(message: string, stopWords: string[]): string {
+  const text = String(message || '')
+    .replace(/[，。！？、,.!?;；:："'""''【】\[\]()（）~～]/g, ' ')
+    .trim();
+  const parts = text.split(/\s+/).filter(Boolean);
+  const meaningful = parts.filter(part => {
+    const lower = part.toLowerCase();
+    return !stopWords.some(sw => lower === sw || lower.includes(sw));
+  });
+  return meaningful.join(' ').trim();
+}
+
+function sanitizeReply(reply: string): string {
+  if (!reply) return '';
+  return String(reply)
+    .replace(/^["'""]+|["'""]+$/g, '')
+    .trim();
+}

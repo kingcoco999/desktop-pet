@@ -19,7 +19,13 @@
       <article class="home-card token-card">
         <span>Token 消耗</span>
         <strong>{{ formatNumber(usage.totalTokens) }}</strong>
-        <small>今日 {{ formatNumber(usage.todayTokens) }}</small>
+        <small>今日 {{ formatNumber(usage.todayTokens) }} / 本月 {{ formatNumber(usage.monthTokens) }}</small>
+      </article>
+
+      <article class="home-card mini-card">
+        <span>AI 请求</span>
+        <strong>{{ usage.totalRequests }}</strong>
+        <small>今日 {{ usage.todayRequests }} 次</small>
       </article>
 
       <article class="home-card mini-card">
@@ -33,11 +39,33 @@
         <strong>{{ counts.notes }}</strong>
         <small>{{ counts.messages }} 条聊天</small>
       </article>
+    </section>
 
-      <article class="home-card mini-card">
-        <span>AI 请求</span>
-        <strong>{{ usage.totalRequests }}</strong>
-        <small>今日 {{ usage.todayRequests }} 次</small>
+    <section v-if="usage.byKind.length > 0 || usage.daily.some(d => d.tokens > 0)" class="usage-detail-row">
+      <article class="home-card usage-breakdown">
+        <h3>请求分类</h3>
+        <div class="kind-list">
+          <div v-for="item in usage.byKind" :key="item.kind" class="kind-item">
+            <span class="kind-label">{{ kindLabel(item.kind) }}</span>
+            <div class="kind-bar-wrap">
+              <div class="kind-bar" :style="{ width: kindBarWidth(item.tokens) }"></div>
+            </div>
+            <span class="kind-value">{{ formatNumber(item.tokens) }} tokens</span>
+            <span class="kind-requests">{{ item.requests }} 次</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="home-card usage-trend">
+        <h3>近 7 日趋势</h3>
+        <div class="trend-chart">
+          <div v-for="day in usage.daily" :key="day.date" class="trend-col">
+            <div class="trend-bar-wrap">
+              <div class="trend-bar" :style="{ height: trendBarHeight(day.tokens) }" :title="`${day.date}: ${formatNumber(day.tokens)} tokens`"></div>
+            </div>
+            <span class="trend-label">{{ formatDayLabel(day.date) }}</span>
+          </div>
+        </div>
       </article>
     </section>
 
@@ -183,6 +211,28 @@ function formatTime(value: string): string {
 
 function makeFallbackTitle(content: string): string {
   return String(content || '').split(/\r?\n/).find(Boolean)?.slice(0, 24) || '暂无记事';
+}
+
+function kindLabel(kind: string): string {
+  const map: Record<string, string> = { chat: '对话', bubble: '气泡', context: '查询' };
+  return map[kind] || kind;
+}
+
+function kindBarWidth(tokens: number): string {
+  const max = Math.max(...usage.byKind.map(k => k.tokens), 1);
+  return `${Math.round((tokens / max) * 100)}%`;
+}
+
+function trendBarHeight(tokens: number): string {
+  const max = Math.max(...usage.daily.map(d => d.tokens), 1);
+  return `${Math.round((tokens / max) * 100)}%`;
+}
+
+function formatDayLabel(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDate();
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+  return `${day}(${weekdays[d.getDay()]})`;
 }
 
 function handleWindowFocus() {
@@ -460,6 +510,101 @@ onUnmounted(() => {
   color: #64748b;
   font-size: 13px;
   font-weight: 700;
+}
+
+.usage-detail-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  min-width: 0;
+}
+
+.overview-panel .usage-breakdown h3,
+.overview-panel .usage-trend h3 {
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+
+.kind-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kind-item {
+  display: grid;
+  grid-template-columns: 56px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.kind-label {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.kind-bar-wrap {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.06);
+  overflow: hidden;
+}
+
+.kind-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #111827, #6b7280);
+  transition: width 0.3s ease;
+}
+
+.kind-value {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.kind-requests {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 80px;
+  padding-top: 4px;
+}
+
+.trend-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.trend-bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.trend-bar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, #111827, #374151);
+  transition: height 0.3s ease;
+}
+
+.trend-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 @media (max-width: 1080px) {

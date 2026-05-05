@@ -11,29 +11,44 @@
       <div v-if="messages.length === 0" class="empty-state">
         <div class="emoji">💬</div>
         <div class="message">还没有聊天记录</div>
-        <div class="hint">双击桌面上的宠物开始聊天</div>
+        <div class="hint">直接输入消息或使用下方快捷指令</div>
       </div>
       <div v-for="msg in messages" :key="msg.id" :class="['message-item', msg.role]">
         <div class="avatar">{{ msg.role === 'user' ? '👤' : '🐱' }}</div>
         <div class="bubble" :class="msg.role">
-          <div class="content">{{ msg.content }}</div>
+          <div class="content" v-html="renderMarkdown(msg.content)"></div>
           <div class="meta">
             <span class="time">{{ formatTime(msg.createdAt) }}</span>
-            <span v-if="msg.intent" class="intent badge badge-info">{{ msg.intent }}</span>
+            <span v-if="msg.intent" class="intent badge badge-info">{{ intentLabel(msg.intent) }}</span>
+            <span v-if="msg.mood" class="mood">{{ moodEmoji(msg.mood) }}</span>
+            <button class="copy-btn" @click="copyMessage(msg.content)" title="复制">📋</button>
           </div>
         </div>
       </div>
+      <div v-if="sending" class="message-item assistant">
+        <div class="avatar">🐱</div>
+        <div class="bubble assistant thinking">
+          <div class="typing-indicator"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+      <button v-for="action in quickActions" :key="action.label" class="quick-chip" @click="sendQuickAction(action.prompt)" :disabled="sending">
+        {{ action.icon }} {{ action.label }}
+      </button>
     </div>
 
     <div class="chat-input">
       <input
         v-model="inputText"
         class="input-field"
-        placeholder="输入消息..."
+        placeholder="输入消息... 例如：帮我创建一个待办"
         @keydown.enter="sendMessage"
+        :disabled="sending"
       />
-      <button class="btn btn-primary" @click="sendMessage" :disabled="!inputText.trim()">
-        发送
+      <button class="btn btn-primary" @click="sendMessage" :disabled="!inputText.trim() || sending">
+        {{ sending ? '思考中...' : '发送' }}
       </button>
     </div>
   </div>
@@ -46,9 +61,21 @@ const { ipcRenderer } = require('electron');
 
 const messages = ref<any[]>([]);
 const inputText = ref('');
+const sending = ref(false);
 const messagesRef = ref<HTMLElement>();
 const toast = inject<any>('toast');
 const confirmDialog = inject<any>('confirm');
+
+const quickActions = [
+  { icon: '📋', label: '查看待办', prompt: '帮我看看现在有哪些待办事项' },
+  { icon: '📝', label: '查看记事', prompt: '帮我看看有哪些记事' },
+  { icon: '🔔', label: '查看提醒', prompt: '帮我看看有哪些提醒' },
+  { icon: '✅', label: '新建待办', prompt: '帮我创建一个待办：' },
+  { icon: '📒', label: '新建记事', prompt: '帮我创建一条记事：' },
+  { icon: '⏰', label: '设置提醒', prompt: '提醒我' },
+  { icon: '🗑️', label: '删除待办', prompt: '帮我删除待办：' },
+  { icon: '🧹', label: '清空待办', prompt: '帮我清空所有待办' },
+];
 
 async function loadMessages() {
   try {
@@ -62,9 +89,21 @@ async function loadMessages() {
 
 async function sendMessage() {
   const text = inputText.value.trim();
-  if (!text) return;
-
+  if (!text || sending.value) return;
   inputText.value = '';
+  await doSend(text);
+}
+
+function sendQuickAction(prompt: string) {
+  if (prompt.endsWith('：') || prompt.endsWith(':')) {
+    inputText.value = prompt;
+    return;
+  }
+  doSend(prompt);
+}
+
+async function doSend(text: string) {
+  sending.value = true;
 
   messages.value.push({
     id: Date.now().toString(),
@@ -89,6 +128,8 @@ async function sendMessage() {
     scrollToBottom();
   } catch (e: any) {
     toast?.show('发送失败: ' + e.message, 'error');
+  } finally {
+    sending.value = false;
   }
 }
 
@@ -98,6 +139,12 @@ async function clearHistory() {
   await ipcRenderer.invoke('chat:clear');
   messages.value = [];
   toast?.show('聊天记录已清空', 'success');
+}
+
+function copyMessage(text: string) {
+  navigator.clipboard.writeText(text).then(() => {
+    toast?.show('已复制到剪贴板', 'success');
+  });
 }
 
 function scrollToBottom() {
@@ -111,6 +158,36 @@ function formatTime(isoString: string): string {
   return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 }
 
+function intentLabel(intent: string): string {
+  const map: Record<string, string> = {
+    chat: '聊天', create_todo: '创建待办', create_note: '创建记事',
+    create_reminder: '创建提醒', query_todos: '查询待办', query_notes: '查询记事',
+    query_reminders: '查询提醒', delete_todo: '删除待办', delete_note: '删除记事',
+    delete_reminder: '删除提醒', update_todo: '更新待办', update_note: '更新记事',
+    complete_todo: '完成待办', reopen_todo: '恢复待办',
+  };
+  return map[intent] || intent;
+}
+
+function moodEmoji(mood: string): string {
+  return ({ happy: '😊', normal: '😐', surprised: '😮' } as Record<string, string>)[mood] || '';
+}
+
+function renderMarkdown(text: string): string {
+  if (!text) return '';
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Line breaks
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
 onMounted(loadMessages);
 </script>
 
@@ -122,7 +199,7 @@ onMounted(loadMessages);
   min-height: calc(100vh - 72px);
   width: 100%;
   min-width: 0;
-  gap: 14px;
+  gap: 12px;
   overflow: hidden;
 }
 .chat-messages {
@@ -168,11 +245,23 @@ onMounted(loadMessages);
 .bubble.assistant {
   border-bottom-left-radius: 6px;
 }
+.bubble.thinking {
+  padding: 14px 20px;
+}
 .content {
   font-size: 13px;
   line-height: 1.6;
-  white-space: pre-wrap;
   color: var(--text);
+}
+.content :deep(strong) {
+  font-weight: 700;
+}
+.content :deep(code) {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(17, 24, 39, 0.06);
+  font-size: 12px;
+  font-family: 'SF Mono', Menlo, monospace;
 }
 .bubble.user .content,
 .bubble.user .time,
@@ -189,6 +278,81 @@ onMounted(loadMessages);
   font-size: 11px;
   color: var(--text-secondary);
 }
+.intent {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(29, 78, 216, 0.1);
+  color: #1d4ed8;
+  font-weight: 700;
+}
+.mood {
+  font-size: 14px;
+}
+.copy-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  padding: 2px 4px;
+}
+.message-item:hover .copy-btn {
+  opacity: 0.6;
+}
+.copy-btn:hover {
+  opacity: 1 !important;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 4px 0;
+}
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+  animation: typing-bounce 1.2s infinite ease-in-out;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.quick-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 4px;
+}
+.quick-chip {
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.quick-chip:hover {
+  background: rgba(17, 24, 39, 0.06);
+  border-color: rgba(17, 24, 39, 0.18);
+}
+.quick-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .chat-input {
   position: sticky;
   bottom: 0;
@@ -215,6 +379,12 @@ onMounted(loadMessages);
 
   .bubble {
     max-width: 100%;
+  }
+
+  .quick-actions {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
   }
 }
 </style>
